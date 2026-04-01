@@ -255,6 +255,7 @@
   <div class="legend-item"><div class="legend-shape"><svg width="14" height="14"><circle cx="7" cy="7" r="6" fill="#666" stroke="#fff" stroke-width="1.5"/></svg></div> Elementary</div>
   <div class="legend-item"><div class="legend-shape"><svg width="14" height="14"><rect x="1" y="1" width="12" height="12" rx="2" fill="#666" stroke="#fff" stroke-width="1.5"/></svg></div> Middle School</div>
   <div class="legend-item"><div class="legend-shape"><svg width="14" height="14"><polygon points="7,1 13,13 1,13" fill="#666" stroke="#fff" stroke-width="1.5"/></svg></div> High School</div>
+  <div class="legend-item"><div class="legend-shape"><svg width="14" height="14"><polygon points="7,1 13,7 7,13 1,7" fill="#666" stroke="#fff" stroke-width="1.5"/></svg></div> Other</div>
   <div class="legend-source">Source: BVSD October Headcount 2014–2025 · Resilient Schools process<br>bvsd.org/departments/enrollment/enrollment-statistics</div>
 </div>
 
@@ -286,8 +287,10 @@ function makeIcon(shape, color, size) {
     svg = `<circle cx="${h}" cy="${h}" r="${h-2}" fill="${color}" stroke="#fff" stroke-width="2"/>`;
   else if (shape === 'square')
     svg = `<rect x="2" y="2" width="${s-4}" height="${s-4}" rx="3" fill="${color}" stroke="#fff" stroke-width="2"/>`;
-  else
+  else if (shape === 'triangle')
     svg = `<polygon points="${h},2 ${s-2},${s-2} 2,${s-2}" fill="${color}" stroke="#fff" stroke-width="2"/>`;
+  else // diamond
+    svg = `<polygon points="${h},1 ${s-2},${h} ${h},${s-1} 2,${h}" fill="${color}" stroke="#fff" stroke-width="2"/>`;
   return L.divIcon({
     className: '',
     html: `<svg width="${s}" height="${s}">${svg}</svg>`,
@@ -297,8 +300,8 @@ function makeIcon(shape, color, size) {
   });
 }
 
-const shapeFor = { elementary: 'circle', middle: 'square', high: 'triangle' };
-const levelLabels = { elementary: 'Elementary', middle: 'Middle School', high: 'High School' };
+const shapeFor = { elementary: 'circle', middle: 'square', high: 'triangle', other: 'diamond' };
+const levelLabels = { elementary: 'Elementary', middle: 'Middle School', high: 'High School', other: 'Other Program' };
 
 // Sparkline SVG generator
 function sparkline(history, width, height) {
@@ -424,8 +427,8 @@ const schools = [
     enrollmentByLevel: { elementary: { current: 17, peak: 20, peakYear: 2019, pctOfPeak: 85.0, history: [{year:2014,enrollment:13},{year:2015,enrollment:12},{year:2016,enrollment:14},{year:2017,enrollment:15},{year:2018,enrollment:18},{year:2019,enrollment:20},{year:2020,enrollment:18},{year:2021,enrollment:16},{year:2022,enrollment:16},{year:2023,enrollment:17},{year:2024,enrollment:16},{year:2025,enrollment:17}] }}},
   { name: 'Nederland Elementary', lat: 39.9675, lng: -105.5138, levels: ['elementary'], extra: 'Mountain school',
     enrollmentByLevel: { elementary: { current: 165, peak: 285, peakYear: 2014, pctOfPeak: 57.9, history: [{year:2014,enrollment:285},{year:2015,enrollment:274},{year:2016,enrollment:253},{year:2017,enrollment:241},{year:2018,enrollment:226},{year:2019,enrollment:222},{year:2020,enrollment:183},{year:2021,enrollment:175},{year:2022,enrollment:176},{year:2023,enrollment:171},{year:2024,enrollment:166},{year:2025,enrollment:165}] }}},
-  { name: 'Mapleton ECE', addr: '840 Mapleton Ave, Boulder', lat: 40.0204, lng: -105.2857, levels: ['elementary'],
-    enrollmentByLevel: { elementary: { current: null, peak: 76, peakYear: 2014, pctOfPeak: null, history: [] }}},
+  { name: 'Mapleton ECE', addr: '840 Mapleton Ave, Boulder', lat: 40.0204, lng: -105.2857, levels: ['other'],
+    enrollmentByLevel: { other: { current: null, peak: 76, peakYear: 2014, pctOfPeak: null, history: [] }}, extra: 'Early childhood education' },
 
   // ── K-8 SCHOOLS ──
   { name: 'Eldorado PK-8', addr: '3351 S Indiana St, Superior', lat: 39.9215, lng: -105.1612, levels: ['elementary', 'middle'], closureRisk: 'engagement',
@@ -461,11 +464,10 @@ const schools = [
       middle: { current: 404, peak: 406, peakYear: 2016, pctOfPeak: 99.5, history: [{year:2014,enrollment:399},{year:2015,enrollment:400},{year:2016,enrollment:406},{year:2017,enrollment:398},{year:2018,enrollment:400},{year:2019,enrollment:401},{year:2020,enrollment:397},{year:2021,enrollment:402},{year:2022,enrollment:402},{year:2023,enrollment:404},{year:2024,enrollment:404},{year:2025,enrollment:404}] },
       high: { current: 595, peak: 599, peakYear: 2023, pctOfPeak: 99.3, history: [{year:2014,enrollment:567},{year:2015,enrollment:576},{year:2016,enrollment:581},{year:2017,enrollment:586},{year:2018,enrollment:592},{year:2019,enrollment:592},{year:2020,enrollment:594},{year:2021,enrollment:594},{year:2022,enrollment:597},{year:2023,enrollment:599},{year:2024,enrollment:596},{year:2025,enrollment:595}] }
     }},
-  { name: 'Boulder Universal', addr: '6600 Arapahoe Rd, Boulder', lat: 39.9880, lng: -105.2050, levels: ['elementary', 'high'],
+  { name: 'Boulder Universal', addr: '6600 Arapahoe Rd, Boulder', lat: 39.9880, lng: -105.2050, levels: ['other'],
     enrollmentByLevel: {
-      elementary: { current: 39, peak: 320, peakYear: 2020, pctOfPeak: 12.2, history: [{year:2014,enrollment:171},{year:2015,enrollment:184},{year:2016,enrollment:207},{year:2017,enrollment:227},{year:2018,enrollment:271},{year:2019,enrollment:305},{year:2020,enrollment:320},{year:2021,enrollment:277},{year:2022,enrollment:230},{year:2023,enrollment:100},{year:2024,enrollment:63},{year:2025,enrollment:39}] },
-      high: { current: 147, peak: 296, peakYear: 2020, pctOfPeak: 49.7, history: [{year:2014,enrollment:118},{year:2015,enrollment:141},{year:2016,enrollment:146},{year:2017,enrollment:175},{year:2018,enrollment:212},{year:2019,enrollment:253},{year:2020,enrollment:296},{year:2021,enrollment:260},{year:2022,enrollment:228},{year:2023,enrollment:179},{year:2024,enrollment:167},{year:2025,enrollment:147}] }
-    }},
+      other: { current: 186, peak: 616, peakYear: 2020, pctOfPeak: 30.2, history: [{year:2014,enrollment:289},{year:2015,enrollment:325},{year:2016,enrollment:353},{year:2017,enrollment:402},{year:2018,enrollment:483},{year:2019,enrollment:558},{year:2020,enrollment:616},{year:2021,enrollment:537},{year:2022,enrollment:458},{year:2023,enrollment:279},{year:2024,enrollment:230},{year:2025,enrollment:186}] }
+    }, extra: 'K-12 alternative school' },
 
   // ── MIDDLE SCHOOLS ──
   { name: 'Angevine Middle School', addr: '1150 S Boulder Rd, Lafayette', lat: 39.9853, lng: -105.1020, levels: ['middle'],
@@ -507,12 +509,8 @@ const schools = [
     }},
 
   // ── ALTERNATIVE / OTHER HIGH SCHOOLS ──
-  { name: 'Halcyon School', addr: '3100 Bucknell Ct, Boulder', lat: 39.9928, lng: -105.2560, levels: ['middle', 'high'], extra: 'Alternative school',
-    enrollmentByLevel: {
-      middle: { current: null, peak: 5, peakYear: 2016, pctOfPeak: null, history: [] },
-      high: { current: null, peak: 14, peakYear: 2014, pctOfPeak: null, history: [] }
-    }},
-  { name: 'Apex Home School Enrichment', addr: '6600 Arapahoe Rd, Boulder', lat: 39.9884, lng: -105.2055, levels: ['high'], extra: 'Homeschool enrichment' },
+  { name: 'Halcyon School', addr: '3100 Bucknell Ct, Boulder', lat: 39.9928, lng: -105.2560, levels: ['other'], extra: 'Alternative school' },
+  { name: 'Apex Home School Enrichment', addr: '6600 Arapahoe Rd, Boulder', lat: 39.9884, lng: -105.2055, levels: ['other'], extra: 'Homeschool enrichment' },
   { name: 'Arapahoe Ridge High School', addr: '6600 Arapahoe Rd, Boulder', lat: 39.9878, lng: -105.2045, levels: ['high'], extra: 'Alternative high school',
     enrollmentByLevel: { high: { current: 184, peak: 244, peakYear: 2023, pctOfPeak: 75.4, history: [{year:2014,enrollment:137},{year:2015,enrollment:132},{year:2016,enrollment:100},{year:2017,enrollment:105},{year:2018,enrollment:141},{year:2019,enrollment:88},{year:2020,enrollment:135},{year:2021,enrollment:135},{year:2022,enrollment:206},{year:2023,enrollment:244},{year:2024,enrollment:188},{year:2025,enrollment:184}] }}},
   { name: 'Boulder Prep Charter', addr: '5075 Chaparral Ct, Boulder', lat: 40.0665, lng: -105.2029, levels: ['high'],
@@ -522,12 +520,17 @@ const schools = [
       middle: { current: 6, peak: 10, peakYear: 2023, pctOfPeak: 60.0, history: [{year:2023,enrollment:10},{year:2024,enrollment:6},{year:2025,enrollment:6}] },
       high: { current: 86, peak: 118, peakYear: 2014, pctOfPeak: 72.9, history: [{year:2014,enrollment:118},{year:2015,enrollment:106},{year:2016,enrollment:101},{year:2017,enrollment:95},{year:2018,enrollment:96},{year:2019,enrollment:92},{year:2020,enrollment:85},{year:2021,enrollment:86},{year:2022,enrollment:98},{year:2023,enrollment:100},{year:2024,enrollment:91},{year:2025,enrollment:86}] }
     }},
-  { name: 'BVSD Online', addr: '6500 Arapahoe Rd, Boulder', lat: 39.9876, lng: -105.2065, levels: ['middle', 'high'], extra: 'Online school' },
+  { name: 'BVSD Online', addr: '6500 Arapahoe Rd, Boulder', lat: 39.9876, lng: -105.2065, levels: ['other'], extra: 'Online school' },
+
+  // Other programs from enrollment data
+  { name: 'Community Based', lat: 40.015, lng: -105.270, levels: ['other'], extra: 'Community-based program' },
+  { name: 'Colorado Preschool Program (CPP)', lat: 40.014, lng: -105.268, levels: ['other'], extra: 'Preschool program' },
 ];
 
 // ─── COLOR MODE + FILTER STATE ───
 let colorMode = 'enrollment'; // 'enrollment' or 'closure'
 let activeFilter = 'all';
+let showOther = false; // "Other" toggled off by default
 const markerEntries = [];
 
 const PURPLE = '#7c3aed';
@@ -575,37 +578,45 @@ function buildMarkers() {
 function applyFilter() {
   const seen = new Set();
   markerEntries.forEach(({ marker, school, level }) => {
-    if (activeFilter === 'all') {
+    let show = false;
+
+    if (level === 'other') {
+      // "Other" only shows when explicitly toggled on (via its button, or when filter=other)
+      show = (activeFilter === 'other') || (showOther && (activeFilter === 'all' || school.levels.includes(activeFilter)));
+    } else if (activeFilter === 'all') {
       if (!seen.has(school.name)) {
         seen.add(school.name);
-        const primaryLevel = school.levels[0];
-        marker.setIcon(makeIcon(shapeFor[primaryLevel], getMarkerColor(school, primaryLevel), 20));
-        marker.setPopupContent(buildPopup(school, primaryLevel));
-        marker.addTo(map);
-      } else {
-        map.removeLayer(marker);
+        show = true;
       }
+    } else if (activeFilter === 'other') {
+      show = false; // non-other markers hidden when "other" filter active
     } else {
-      if (level === activeFilter) {
-        marker.setIcon(makeIcon(shapeFor[level], getMarkerColor(school, level), 20));
-        marker.setPopupContent(buildPopup(school, level));
-        marker.addTo(map);
-      } else {
-        map.removeLayer(marker);
-      }
+      show = (level === activeFilter);
+    }
+
+    if (show) {
+      marker.setIcon(makeIcon(shapeFor[level], getMarkerColor(school, level), 20));
+      marker.setPopupContent(buildPopup(school, level));
+      marker.addTo(map);
+    } else {
+      map.removeLayer(marker);
     }
   });
 
   document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.level === activeFilter);
+    if (btn.dataset.level === 'other') {
+      btn.classList.toggle('active', showOther || activeFilter === 'other');
+    } else {
+      btn.classList.toggle('active', btn.dataset.level === activeFilter);
+    }
   });
   updateCounts();
 }
 
 function updateCounts() {
-  const counts = { all: new Set(), elementary: 0, middle: 0, high: 0 };
+  const counts = { all: new Set(), elementary: 0, middle: 0, high: 0, other: 0 };
   schools.forEach(s => {
-    counts.all.add(s.name);
+    if (!s.levels.includes('other')) counts.all.add(s.name);
     s.levels.forEach(l => counts[l]++);
   });
   document.querySelectorAll('.filter-btn .count').forEach(el => {
@@ -616,13 +627,22 @@ function updateCounts() {
 
 // Build filter buttons
 const filterContainer = document.getElementById('filters');
-['all', 'elementary', 'middle', 'high'].forEach(level => {
+['all', 'elementary', 'middle', 'high', 'other'].forEach(level => {
   const btn = document.createElement('button');
   btn.className = 'filter-btn' + (level === 'all' ? ' active' : '');
   btn.dataset.level = level;
-  const label = level === 'all' ? 'All Schools' : level === 'elementary' ? 'Elementary' : level === 'middle' ? 'Middle' : 'High School';
+  const label = { all: 'All Schools', elementary: 'Elementary', middle: 'Middle', high: 'High School', other: 'Other' }[level];
   btn.innerHTML = `${label}<span class="count">0</span>`;
-  btn.addEventListener('click', () => { activeFilter = level; applyFilter(); });
+  btn.addEventListener('click', () => {
+    if (level === 'other') {
+      // Toggle other on/off independently
+      showOther = !showOther;
+    } else {
+      activeFilter = level;
+    }
+    applyFilter();
+  });
+  if (level === 'other') btn.style.borderStyle = 'dashed';
   filterContainer.appendChild(btn);
 });
 
