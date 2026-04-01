@@ -182,6 +182,33 @@
   .status-orange { background: #fef3e2; color: #d4800a; }
   .status-blue { background: #e8f1fb; color: #2471a3; }
   .status-gray { background: #f3f3f3; color: #666; }
+  .status-purple { background: #f3e8ff; color: #7c3aed; }
+
+  /* Color mode toggle */
+  .mode-toggle {
+    display: flex;
+    gap: 0;
+    margin: 10px 0 6px;
+    border: 1.5px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 6px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    background: #fff;
+    border: none;
+    cursor: pointer;
+    color: #666;
+    transition: all 0.15s;
+  }
+  .mode-btn:first-child { border-right: 1.5px solid #ddd; }
+  .mode-btn.active { background: #2563eb; color: #fff; }
+  .legend-group { display: none; }
+  .legend-group.visible { display: block; }
 
   @media (max-width: 600px) {
     .title-card { font-size: 14px; padding: 10px 14px; top: 10px; left: 10px; }
@@ -207,15 +234,28 @@
 
 <div class="card legend-card">
   <h3>Legend</h3>
-  <div class="legend-section-label">% of 10-Year Peak Enrollment</div>
-  <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Below 60%</div>
-  <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div> 60% – 79%</div>
-  <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div> 80% or above</div>
+  <div class="legend-section-label">Color By</div>
+  <div class="mode-toggle">
+    <button class="mode-btn active" data-mode="enrollment">% of Peak</button>
+    <button class="mode-btn" data-mode="closure">Closure Risk</button>
+  </div>
+  <div class="legend-group visible" id="legend-enrollment">
+    <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Below 60%</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div> 60% – 79%</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div> 80% or above</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#aaa"></div> No data</div>
+  </div>
+  <div class="legend-group" id="legend-closure">
+    <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Community engagement (below 50%)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div> Advisory phase (below 60%)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#7c3aed"></div> Projected at risk by 2030</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#aaa"></div> Not on closure list</div>
+  </div>
   <div class="legend-section-label">School Level</div>
   <div class="legend-item"><div class="legend-shape"><svg width="14" height="14"><circle cx="7" cy="7" r="6" fill="#666" stroke="#fff" stroke-width="1.5"/></svg></div> Elementary</div>
   <div class="legend-item"><div class="legend-shape"><svg width="14" height="14"><rect x="1" y="1" width="12" height="12" rx="2" fill="#666" stroke="#fff" stroke-width="1.5"/></svg></div> Middle School</div>
   <div class="legend-item"><div class="legend-shape"><svg width="14" height="14"><polygon points="7,1 13,13 1,13" fill="#666" stroke="#fff" stroke-width="1.5"/></svg></div> High School</div>
-  <div class="legend-source">Source: BVSD October Headcount 2014–2025<br>bvsd.org/departments/enrollment/enrollment-statistics</div>
+  <div class="legend-source">Source: BVSD October Headcount 2014–2025 · Resilient Schools process<br>bvsd.org/departments/enrollment/enrollment-statistics</div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -310,6 +350,13 @@ function buildPopup(school, level) {
 
   if (school.extra) html += `<div style="margin-top:6px;font-size:12px;color:#666">${school.extra}</div>`;
 
+  // Closure risk status
+  const cl = closureLabel(school);
+  if (cl) {
+    const clCls = school.closureRisk === 'engagement' ? 'status-red' : school.closureRisk === 'advisory' ? 'status-orange' : 'status-purple';
+    html += `<div class="popup-status ${clCls}">${cl}</div>`;
+  }
+
   return html;
 }
 
@@ -319,35 +366,35 @@ function buildPopup(school, level) {
 
 const schools = [
   // ── ELEMENTARY SCHOOLS ──
-  { name: 'Flatirons Elementary', addr: '1150 7th St, Boulder', lat: 40.0084, lng: -105.2851, levels: ['elementary'],
+  { name: 'Flatirons Elementary', addr: '1150 7th St, Boulder', lat: 40.0084, lng: -105.2851, levels: ['elementary'], closureRisk: 'engagement',
     enrollmentByLevel: { elementary: { current: 150, peak: 290, peakYear: 2014, pctOfPeak: 51.7, history: [{year:2014,enrollment:290},{year:2015,enrollment:276},{year:2016,enrollment:266},{year:2017,enrollment:256},{year:2018,enrollment:246},{year:2019,enrollment:243},{year:2020,enrollment:177},{year:2021,enrollment:182},{year:2022,enrollment:186},{year:2023,enrollment:175},{year:2024,enrollment:162},{year:2025,enrollment:150}] }}},
-  { name: 'Heatherwood Elementary', addr: '7750 Concord Dr, Boulder', lat: 40.0576, lng: -105.1725, levels: ['elementary'],
+  { name: 'Heatherwood Elementary', addr: '7750 Concord Dr, Boulder', lat: 40.0576, lng: -105.1725, levels: ['elementary'], closureRisk: 'engagement',
     enrollmentByLevel: { elementary: { current: 225, peak: 385, peakYear: 2015, pctOfPeak: 58.4, history: [{year:2014,enrollment:383},{year:2015,enrollment:385},{year:2016,enrollment:373},{year:2017,enrollment:364},{year:2018,enrollment:348},{year:2019,enrollment:340},{year:2020,enrollment:258},{year:2021,enrollment:259},{year:2022,enrollment:260},{year:2023,enrollment:249},{year:2024,enrollment:236},{year:2025,enrollment:225}] }}},
-  { name: 'Kohl Elementary', addr: '1000 W 10th Ave, Broomfield', lat: 39.9286, lng: -105.0832, levels: ['elementary'],
+  { name: 'Kohl Elementary', addr: '1000 W 10th Ave, Broomfield', lat: 39.9286, lng: -105.0832, levels: ['elementary'], closureRisk: 'engagement',
     enrollmentByLevel: { elementary: { current: 256, peak: 487, peakYear: 2014, pctOfPeak: 52.6, history: [{year:2014,enrollment:487},{year:2015,enrollment:467},{year:2016,enrollment:441},{year:2017,enrollment:418},{year:2018,enrollment:397},{year:2019,enrollment:374},{year:2020,enrollment:305},{year:2021,enrollment:299},{year:2022,enrollment:302},{year:2023,enrollment:279},{year:2024,enrollment:263},{year:2025,enrollment:256}] }}},
-  { name: 'Community Montessori', addr: '805 Gillaspie Dr, Boulder', lat: 39.9815, lng: -105.2519, levels: ['elementary'],
+  { name: 'Community Montessori', addr: '805 Gillaspie Dr, Boulder', lat: 39.9815, lng: -105.2519, levels: ['elementary'], closureRisk: 'advisory',
     enrollmentByLevel: { elementary: { current: 195, peak: 270, peakYear: 2014, pctOfPeak: 72.2, history: [{year:2014,enrollment:270},{year:2015,enrollment:266},{year:2016,enrollment:268},{year:2017,enrollment:258},{year:2018,enrollment:263},{year:2019,enrollment:256},{year:2020,enrollment:218},{year:2021,enrollment:216},{year:2022,enrollment:217},{year:2023,enrollment:205},{year:2024,enrollment:201},{year:2025,enrollment:195}] }}},
-  { name: 'Mesa Elementary', addr: '1575 Lehigh St, Boulder', lat: 39.9722, lng: -105.2610, levels: ['elementary'],
+  { name: 'Mesa Elementary', addr: '1575 Lehigh St, Boulder', lat: 39.9722, lng: -105.2610, levels: ['elementary'], closureRisk: 'advisory',
     enrollmentByLevel: { elementary: { current: 225, peak: 330, peakYear: 2014, pctOfPeak: 68.2, history: [{year:2014,enrollment:330},{year:2015,enrollment:316},{year:2016,enrollment:307},{year:2017,enrollment:294},{year:2018,enrollment:292},{year:2019,enrollment:272},{year:2020,enrollment:223},{year:2021,enrollment:243},{year:2022,enrollment:253},{year:2023,enrollment:240},{year:2024,enrollment:226},{year:2025,enrollment:225}] }}},
-  { name: 'Coal Creek Elementary', addr: '801 W Tamarisk St, Louisville', lat: 39.9827, lng: -105.1578, levels: ['elementary'],
+  { name: 'Coal Creek Elementary', addr: '801 W Tamarisk St, Louisville', lat: 39.9827, lng: -105.1578, levels: ['elementary'], closureRisk: 'projected',
     enrollmentByLevel: { elementary: { current: 268, peak: 427, peakYear: 2014, pctOfPeak: 62.8, history: [{year:2014,enrollment:427},{year:2015,enrollment:413},{year:2016,enrollment:395},{year:2017,enrollment:382},{year:2018,enrollment:353},{year:2019,enrollment:344},{year:2020,enrollment:282},{year:2021,enrollment:280},{year:2022,enrollment:286},{year:2023,enrollment:271},{year:2024,enrollment:272},{year:2025,enrollment:268}] }}},
-  { name: 'Columbine Elementary', addr: '3130 Repplier St, Boulder', lat: 40.0321, lng: -105.2690, levels: ['elementary'],
+  { name: 'Columbine Elementary', addr: '3130 Repplier St, Boulder', lat: 40.0321, lng: -105.2690, levels: ['elementary'], closureRisk: 'projected',
     enrollmentByLevel: { elementary: { current: 313, peak: 534, peakYear: 2016, pctOfPeak: 58.6, history: [{year:2014,enrollment:523},{year:2015,enrollment:527},{year:2016,enrollment:534},{year:2017,enrollment:513},{year:2018,enrollment:488},{year:2019,enrollment:470},{year:2020,enrollment:381},{year:2021,enrollment:384},{year:2022,enrollment:375},{year:2023,enrollment:339},{year:2024,enrollment:325},{year:2025,enrollment:313}] }}},
-  { name: 'Creekside Elementary', addr: '3740 Martin Dr, Boulder', lat: 39.9906, lng: -105.2491, levels: ['elementary'],
+  { name: 'Creekside Elementary', addr: '3740 Martin Dr, Boulder', lat: 39.9906, lng: -105.2491, levels: ['elementary'], closureRisk: 'projected',
     enrollmentByLevel: { elementary: { current: 289, peak: 382, peakYear: 2019, pctOfPeak: 75.7, history: [{year:2014,enrollment:365},{year:2015,enrollment:360},{year:2016,enrollment:365},{year:2017,enrollment:380},{year:2018,enrollment:377},{year:2019,enrollment:382},{year:2020,enrollment:312},{year:2021,enrollment:321},{year:2022,enrollment:310},{year:2023,enrollment:291},{year:2024,enrollment:285},{year:2025,enrollment:289}] }}},
-  { name: 'Crest View Elementary', addr: '1897 Sumac Ave, Boulder', lat: 40.0516, lng: -105.2742, levels: ['elementary'],
+  { name: 'Crest View Elementary', addr: '1897 Sumac Ave, Boulder', lat: 40.0516, lng: -105.2742, levels: ['elementary'], closureRisk: 'projected',
     enrollmentByLevel: { elementary: { current: 331, peak: 605, peakYear: 2016, pctOfPeak: 54.7, history: [{year:2014,enrollment:590},{year:2015,enrollment:597},{year:2016,enrollment:605},{year:2017,enrollment:564},{year:2018,enrollment:521},{year:2019,enrollment:497},{year:2020,enrollment:393},{year:2021,enrollment:389},{year:2022,enrollment:379},{year:2023,enrollment:358},{year:2024,enrollment:340},{year:2025,enrollment:331}] }}},
-  { name: 'Douglass Elementary', addr: '840 N 75th St, Boulder', lat: 40.0024, lng: -105.1770, levels: ['elementary'],
+  { name: 'Douglass Elementary', addr: '840 N 75th St, Boulder', lat: 40.0024, lng: -105.1770, levels: ['elementary'], closureRisk: 'projected',
     enrollmentByLevel: { elementary: { current: 281, peak: 473, peakYear: 2015, pctOfPeak: 59.4, history: [{year:2014,enrollment:467},{year:2015,enrollment:473},{year:2016,enrollment:446},{year:2017,enrollment:420},{year:2018,enrollment:406},{year:2019,enrollment:379},{year:2020,enrollment:311},{year:2021,enrollment:317},{year:2022,enrollment:320},{year:2023,enrollment:293},{year:2024,enrollment:281},{year:2025,enrollment:281}] }}},
-  { name: 'Eisenhower Elementary', addr: '1220 Eisenhower Dr, Boulder', lat: 40.0082, lng: -105.2339, levels: ['elementary'],
+  { name: 'Eisenhower Elementary', addr: '1220 Eisenhower Dr, Boulder', lat: 40.0082, lng: -105.2339, levels: ['elementary'], closureRisk: 'advisory',
     enrollmentByLevel: { elementary: { current: 265, peak: 418, peakYear: 2016, pctOfPeak: 63.4, history: [{year:2014,enrollment:395},{year:2015,enrollment:407},{year:2016,enrollment:418},{year:2017,enrollment:401},{year:2018,enrollment:383},{year:2019,enrollment:369},{year:2020,enrollment:293},{year:2021,enrollment:300},{year:2022,enrollment:304},{year:2023,enrollment:284},{year:2024,enrollment:268},{year:2025,enrollment:265}] }}},
-  { name: 'Louisville Elementary', addr: '400 Hutchinson St, Louisville', lat: 39.9750, lng: -105.1380, levels: ['elementary'],
+  { name: 'Louisville Elementary', addr: '400 Hutchinson St, Louisville', lat: 39.9750, lng: -105.1380, levels: ['elementary'], closureRisk: 'projected',
     enrollmentByLevel: { elementary: { current: 381, peak: 584, peakYear: 2014, pctOfPeak: 65.2, history: [{year:2014,enrollment:584},{year:2015,enrollment:582},{year:2016,enrollment:573},{year:2017,enrollment:543},{year:2018,enrollment:498},{year:2019,enrollment:474},{year:2020,enrollment:381},{year:2021,enrollment:391},{year:2022,enrollment:393},{year:2023,enrollment:390},{year:2024,enrollment:385},{year:2025,enrollment:381}] }}},
-  { name: "Alicia Sanchez Int'l School", addr: '655 Sir Galahad Dr, Lafayette', lat: 39.9893, lng: -105.0841, levels: ['elementary'],
+  { name: "Alicia Sanchez Int'l School", addr: '655 Sir Galahad Dr, Lafayette', lat: 39.9893, lng: -105.0841, levels: ['elementary'], closureRisk: 'projected',
     enrollmentByLevel: { elementary: { current: 276, peak: 403, peakYear: 2016, pctOfPeak: 68.5, history: [{year:2014,enrollment:385},{year:2015,enrollment:393},{year:2016,enrollment:403},{year:2017,enrollment:386},{year:2018,enrollment:371},{year:2019,enrollment:365},{year:2020,enrollment:301},{year:2021,enrollment:306},{year:2022,enrollment:296},{year:2023,enrollment:276},{year:2024,enrollment:275},{year:2025,enrollment:276}] }}},
-  { name: 'University Hill Elementary', addr: '956 16th St, Boulder', lat: 40.0051, lng: -105.2748, levels: ['elementary'],
+  { name: 'University Hill Elementary', addr: '956 16th St, Boulder', lat: 40.0051, lng: -105.2748, levels: ['elementary'], closureRisk: 'projected',
     enrollmentByLevel: { elementary: { current: 370, peak: 451, peakYear: 2019, pctOfPeak: 82.0, history: [{year:2014,enrollment:375},{year:2015,enrollment:380},{year:2016,enrollment:406},{year:2017,enrollment:420},{year:2018,enrollment:448},{year:2019,enrollment:451},{year:2020,enrollment:367},{year:2021,enrollment:389},{year:2022,enrollment:393},{year:2023,enrollment:395},{year:2024,enrollment:383},{year:2025,enrollment:370}] }}, extra: 'Dual immersion Spanish/English' },
-  { name: 'Whittier International Elementary', addr: '2008 Pine St, Boulder', lat: 40.0216, lng: -105.2696, levels: ['elementary'],
+  { name: 'Whittier International Elementary', addr: '2008 Pine St, Boulder', lat: 40.0216, lng: -105.2696, levels: ['elementary'], closureRisk: 'advisory',
     enrollmentByLevel: { elementary: { current: 258, peak: 422, peakYear: 2016, pctOfPeak: 61.1, history: [{year:2014,enrollment:414},{year:2015,enrollment:415},{year:2016,enrollment:422},{year:2017,enrollment:390},{year:2018,enrollment:370},{year:2019,enrollment:347},{year:2020,enrollment:280},{year:2021,enrollment:286},{year:2022,enrollment:284},{year:2023,enrollment:268},{year:2024,enrollment:260},{year:2025,enrollment:258}] }}},
   { name: 'Bear Creek Elementary', addr: '2500 Table Mesa Dr, Boulder', lat: 39.9804, lng: -105.2631, levels: ['elementary'],
     enrollmentByLevel: { elementary: { current: 312, peak: 448, peakYear: 2017, pctOfPeak: 69.6, history: [{year:2014,enrollment:417},{year:2015,enrollment:441},{year:2016,enrollment:438},{year:2017,enrollment:448},{year:2018,enrollment:425},{year:2019,enrollment:402},{year:2020,enrollment:342},{year:2021,enrollment:346},{year:2022,enrollment:340},{year:2023,enrollment:299},{year:2024,enrollment:318},{year:2025,enrollment:312}] }}},
@@ -371,44 +418,44 @@ const schools = [
     enrollmentByLevel: { elementary: { current: 394, peak: 555, peakYear: 2019, pctOfPeak: 71.0, history: [{year:2014,enrollment:496},{year:2015,enrollment:520},{year:2016,enrollment:543},{year:2017,enrollment:549},{year:2018,enrollment:543},{year:2019,enrollment:555},{year:2020,enrollment:446},{year:2021,enrollment:441},{year:2022,enrollment:430},{year:2023,enrollment:408},{year:2024,enrollment:396},{year:2025,enrollment:394}] }}},
   { name: 'Superior Elementary', addr: '1800 S Indiana St, Superior', lat: 39.9379, lng: -105.1565, levels: ['elementary'],
     enrollmentByLevel: { elementary: { current: 432, peak: 505, peakYear: 2014, pctOfPeak: 85.5, history: [{year:2014,enrollment:505},{year:2015,enrollment:502},{year:2016,enrollment:494},{year:2017,enrollment:479},{year:2018,enrollment:466},{year:2019,enrollment:459},{year:2020,enrollment:400},{year:2021,enrollment:418},{year:2022,enrollment:424},{year:2023,enrollment:418},{year:2024,enrollment:426},{year:2025,enrollment:432}] }}},
-  { name: 'Gold Hill Elementary', lat: 40.0822, lng: -105.4578, levels: ['elementary'], extra: 'Mountain school',
+  { name: 'Gold Hill Elementary', lat: 40.0629, lng: -105.4127, levels: ['elementary'], extra: 'Mountain school',
     enrollmentByLevel: { elementary: { current: 11, peak: 27, peakYear: 2014, pctOfPeak: 40.7, history: [{year:2014,enrollment:27},{year:2015,enrollment:23},{year:2016,enrollment:21},{year:2017,enrollment:20},{year:2018,enrollment:19},{year:2019,enrollment:15},{year:2020,enrollment:13},{year:2021,enrollment:14},{year:2022,enrollment:12},{year:2023,enrollment:13},{year:2024,enrollment:12},{year:2025,enrollment:11}] }}},
-  { name: 'Jamestown Elementary', lat: 40.1114, lng: -105.3953, levels: ['elementary'], extra: 'Mountain school',
+  { name: 'Jamestown Elementary', lat: 40.1148, lng: -105.3879, levels: ['elementary'], extra: 'Mountain school',
     enrollmentByLevel: { elementary: { current: 17, peak: 20, peakYear: 2019, pctOfPeak: 85.0, history: [{year:2014,enrollment:13},{year:2015,enrollment:12},{year:2016,enrollment:14},{year:2017,enrollment:15},{year:2018,enrollment:18},{year:2019,enrollment:20},{year:2020,enrollment:18},{year:2021,enrollment:16},{year:2022,enrollment:16},{year:2023,enrollment:17},{year:2024,enrollment:16},{year:2025,enrollment:17}] }}},
-  { name: 'Nederland Elementary', lat: 39.9619, lng: -105.5108, levels: ['elementary'], extra: 'Mountain school',
+  { name: 'Nederland Elementary', lat: 39.9675, lng: -105.5138, levels: ['elementary'], extra: 'Mountain school',
     enrollmentByLevel: { elementary: { current: 165, peak: 285, peakYear: 2014, pctOfPeak: 57.9, history: [{year:2014,enrollment:285},{year:2015,enrollment:274},{year:2016,enrollment:253},{year:2017,enrollment:241},{year:2018,enrollment:226},{year:2019,enrollment:222},{year:2020,enrollment:183},{year:2021,enrollment:175},{year:2022,enrollment:176},{year:2023,enrollment:171},{year:2024,enrollment:166},{year:2025,enrollment:165}] }}},
-  { name: 'Mapleton ECE', addr: '888 Iris Ave, Boulder', lat: 40.0310, lng: -105.2650, levels: ['elementary'],
+  { name: 'Mapleton ECE', addr: '840 Mapleton Ave, Boulder', lat: 40.0204, lng: -105.2857, levels: ['elementary'],
     enrollmentByLevel: { elementary: { current: null, peak: 76, peakYear: 2014, pctOfPeak: null, history: [] }}},
 
   // ── K-8 SCHOOLS ──
-  { name: 'Eldorado PK-8', addr: '3351 S Indiana St, Superior', lat: 39.9215, lng: -105.1612, levels: ['elementary', 'middle'],
+  { name: 'Eldorado PK-8', addr: '3351 S Indiana St, Superior', lat: 39.9215, lng: -105.1612, levels: ['elementary', 'middle'], closureRisk: 'engagement',
     enrollmentByLevel: {
       elementary: { current: 252, peak: 536, peakYear: 2014, pctOfPeak: 47.0, history: [{year:2014,enrollment:536},{year:2015,enrollment:526},{year:2016,enrollment:505},{year:2017,enrollment:477},{year:2018,enrollment:432},{year:2019,enrollment:406},{year:2020,enrollment:316},{year:2021,enrollment:309},{year:2022,enrollment:298},{year:2023,enrollment:276},{year:2024,enrollment:261},{year:2025,enrollment:252}] },
       middle: { current: 167, peak: 474, peakYear: 2017, pctOfPeak: 35.2, history: [{year:2014,enrollment:426},{year:2015,enrollment:447},{year:2016,enrollment:462},{year:2017,enrollment:474},{year:2018,enrollment:418},{year:2019,enrollment:382},{year:2020,enrollment:309},{year:2021,enrollment:282},{year:2022,enrollment:247},{year:2023,enrollment:196},{year:2024,enrollment:173},{year:2025,enrollment:167}] }
     }},
-  { name: 'Monarch PK-8', addr: '263 Campus Dr, Louisville', lat: 39.9512, lng: -105.1438, levels: ['elementary', 'middle'],
+  { name: 'Monarch PK-8', addr: '263 Campus Dr, Louisville', lat: 39.9512, lng: -105.1438, levels: ['elementary', 'middle'], closureRisk: 'projected',
     enrollmentByLevel: {
       elementary: { current: 264, peak: 419, peakYear: 2015, pctOfPeak: 63.0, history: [{year:2014,enrollment:412},{year:2015,enrollment:419},{year:2016,enrollment:416},{year:2017,enrollment:407},{year:2018,enrollment:375},{year:2019,enrollment:362},{year:2020,enrollment:296},{year:2021,enrollment:299},{year:2022,enrollment:296},{year:2023,enrollment:276},{year:2024,enrollment:266},{year:2025,enrollment:264}] },
       middle: { current: 422, peak: 471, peakYear: 2014, pctOfPeak: 89.6, history: [{year:2014,enrollment:471},{year:2015,enrollment:460},{year:2016,enrollment:461},{year:2017,enrollment:454},{year:2018,enrollment:436},{year:2019,enrollment:415},{year:2020,enrollment:376},{year:2021,enrollment:371},{year:2022,enrollment:366},{year:2023,enrollment:393},{year:2024,enrollment:400},{year:2025,enrollment:422}] }
     }},
-  { name: 'Aspen Creek K-8', addr: '5500 Aspen Creek Dr, Broomfield', lat: 39.9490, lng: -105.0410, levels: ['elementary', 'middle'],
+  { name: 'Aspen Creek K-8', addr: '5500 Aspen Creek Dr, Broomfield', lat: 39.9473, lng: -105.0552, levels: ['elementary', 'middle'],
     enrollmentByLevel: {
       elementary: { current: 504, peak: 524, peakYear: 2014, pctOfPeak: 96.2, history: [{year:2014,enrollment:524},{year:2015,enrollment:496},{year:2016,enrollment:498},{year:2017,enrollment:487},{year:2018,enrollment:457},{year:2019,enrollment:445},{year:2020,enrollment:358},{year:2021,enrollment:382},{year:2022,enrollment:399},{year:2023,enrollment:421},{year:2024,enrollment:471},{year:2025,enrollment:504}] },
       middle: { current: 409, peak: 446, peakYear: 2017, pctOfPeak: 91.7, history: [{year:2014,enrollment:437},{year:2015,enrollment:437},{year:2016,enrollment:432},{year:2017,enrollment:446},{year:2018,enrollment:424},{year:2019,enrollment:409},{year:2020,enrollment:364},{year:2021,enrollment:339},{year:2022,enrollment:334},{year:2023,enrollment:316},{year:2024,enrollment:372},{year:2025,enrollment:409}] }
     }},
-  { name: 'Horizons K-8', addr: '4545 Sioux Dr, Boulder', lat: 39.9870, lng: -105.2150, levels: ['elementary', 'middle'],
+  { name: 'Horizons K-8', addr: '4545 Sioux Dr, Boulder', lat: 39.9932, lng: -105.2370, levels: ['elementary', 'middle'],
     enrollmentByLevel: {
       elementary: { current: 246, peak: 246, peakYear: 2025, pctOfPeak: 100.0, history: [{year:2025,enrollment:246}] },
       middle: { current: 122, peak: 122, peakYear: 2025, pctOfPeak: 100.0, history: [{year:2025,enrollment:122}] }
     }, extra: 'New school — limited history' },
-  { name: 'Meadowlark PK-8', addr: '2300 Meadow Sweet Ln, Erie', lat: 40.0370, lng: -105.0100, levels: ['elementary', 'middle'],
+  { name: 'Meadowlark PK-8', addr: '2300 Sweet Meadow Ln, Erie', lat: 40.0474, lng: -105.1026, levels: ['elementary', 'middle'],
     enrollmentByLevel: {
       elementary: { current: 472, peak: 505, peakYear: 2022, pctOfPeak: 93.5, history: [{year:2014,enrollment:244},{year:2015,enrollment:278},{year:2016,enrollment:311},{year:2017,enrollment:343},{year:2018,enrollment:375},{year:2019,enrollment:401},{year:2020,enrollment:372},{year:2021,enrollment:430},{year:2022,enrollment:505},{year:2023,enrollment:481},{year:2024,enrollment:473},{year:2025,enrollment:472}] },
       middle: { current: 237, peak: 237, peakYear: 2025, pctOfPeak: 100.0, history: [{year:2025,enrollment:237}] }
     }},
 
   // ── K-12 / CHARTER ──
-  { name: 'Peak to Peak Charter', addr: '800 Merlin Dr, Lafayette', lat: 39.9920, lng: -105.0870, levels: ['elementary', 'middle', 'high'],
+  { name: 'Peak to Peak Charter', addr: '800 Merlin Dr, Lafayette', lat: 39.9880, lng: -105.0742, levels: ['elementary', 'middle', 'high'],
     enrollmentByLevel: {
       elementary: { current: 450, peak: 457, peakYear: 2015, pctOfPeak: 98.5, history: [{year:2014,enrollment:452},{year:2015,enrollment:457},{year:2016,enrollment:455},{year:2017,enrollment:452},{year:2018,enrollment:454},{year:2019,enrollment:454},{year:2020,enrollment:448},{year:2021,enrollment:450},{year:2022,enrollment:451},{year:2023,enrollment:451},{year:2024,enrollment:451},{year:2025,enrollment:450}] },
       middle: { current: 404, peak: 406, peakYear: 2016, pctOfPeak: 99.5, history: [{year:2014,enrollment:399},{year:2015,enrollment:400},{year:2016,enrollment:406},{year:2017,enrollment:398},{year:2018,enrollment:400},{year:2019,enrollment:401},{year:2020,enrollment:397},{year:2021,enrollment:402},{year:2022,enrollment:402},{year:2023,enrollment:404},{year:2024,enrollment:404},{year:2025,enrollment:404}] },
@@ -423,44 +470,44 @@ const schools = [
   // ── MIDDLE SCHOOLS ──
   { name: 'Angevine Middle School', addr: '1150 S Boulder Rd, Lafayette', lat: 39.9853, lng: -105.1020, levels: ['middle'],
     enrollmentByLevel: { middle: { current: 588, peak: 725, peakYear: 2015, pctOfPeak: 81.1, history: [{year:2014,enrollment:662},{year:2015,enrollment:725},{year:2016,enrollment:711},{year:2017,enrollment:672},{year:2018,enrollment:693},{year:2019,enrollment:691},{year:2020,enrollment:636},{year:2021,enrollment:658},{year:2022,enrollment:659},{year:2023,enrollment:605},{year:2024,enrollment:616},{year:2025,enrollment:588}] }}},
-  { name: 'Broomfield Heights Middle School', addr: '1555 Daphne St, Broomfield', lat: 39.9370, lng: -105.0580, levels: ['middle'],
+  { name: 'Broomfield Heights Middle School', addr: '1555 Daphne St, Broomfield', lat: 39.9370, lng: -105.0771, levels: ['middle'],
     enrollmentByLevel: { middle: { current: 483, peak: 565, peakYear: 2018, pctOfPeak: 85.5, history: [{year:2014,enrollment:487},{year:2015,enrollment:509},{year:2016,enrollment:527},{year:2017,enrollment:548},{year:2018,enrollment:565},{year:2019,enrollment:556},{year:2020,enrollment:498},{year:2021,enrollment:495},{year:2022,enrollment:492},{year:2023,enrollment:479},{year:2024,enrollment:472},{year:2025,enrollment:483}] }}},
-  { name: 'Casey Middle School', addr: '1301 High St, Boulder', lat: 40.0220, lng: -105.2700, levels: ['middle'],
+  { name: 'Casey Middle School', addr: '1301 High St, Boulder', lat: 40.0225, lng: -105.2801, levels: ['middle'],
     enrollmentByLevel: { middle: { current: 321, peak: 672, peakYear: 2017, pctOfPeak: 47.8, history: [{year:2014,enrollment:639},{year:2015,enrollment:655},{year:2016,enrollment:660},{year:2017,enrollment:672},{year:2018,enrollment:622},{year:2019,enrollment:594},{year:2020,enrollment:477},{year:2021,enrollment:463},{year:2022,enrollment:441},{year:2023,enrollment:370},{year:2024,enrollment:346},{year:2025,enrollment:321}] }}},
-  { name: 'Centennial Middle School', addr: '2205 Norwood Ave, Boulder', lat: 40.0380, lng: -105.2780, levels: ['middle'],
+  { name: 'Centennial Middle School', addr: '2205 Norwood Ave, Boulder', lat: 40.0443, lng: -105.2690, levels: ['middle'],
     enrollmentByLevel: { middle: { current: 560, peak: 646, peakYear: 2017, pctOfPeak: 86.7, history: [{year:2014,enrollment:639},{year:2015,enrollment:631},{year:2016,enrollment:640},{year:2017,enrollment:646},{year:2018,enrollment:628},{year:2019,enrollment:604},{year:2020,enrollment:530},{year:2021,enrollment:534},{year:2022,enrollment:531},{year:2023,enrollment:538},{year:2024,enrollment:542},{year:2025,enrollment:560}] }}},
-  { name: 'Louisville Middle School', addr: '1341 Main St, Louisville', lat: 39.9778, lng: -105.1320, levels: ['middle'],
+  { name: 'Louisville Middle School', addr: '1341 Main St, Louisville', lat: 39.9840, lng: -105.1323, levels: ['middle'],
     enrollmentByLevel: { middle: { current: 624, peak: 678, peakYear: 2018, pctOfPeak: 92.0, history: [{year:2014,enrollment:649},{year:2015,enrollment:651},{year:2016,enrollment:674},{year:2017,enrollment:670},{year:2018,enrollment:678},{year:2019,enrollment:674},{year:2020,enrollment:618},{year:2021,enrollment:622},{year:2022,enrollment:620},{year:2023,enrollment:619},{year:2024,enrollment:618},{year:2025,enrollment:624}] }}},
-  { name: 'Manhattan Middle School', addr: '290 Manhattan Dr, Boulder', lat: 39.9920, lng: -105.2410, levels: ['middle'],
+  { name: 'Manhattan Middle School', addr: '290 Manhattan Dr, Boulder', lat: 39.9936, lng: -105.2297, levels: ['middle'],
     enrollmentByLevel: { middle: { current: 450, peak: 543, peakYear: 2014, pctOfPeak: 82.9, history: [{year:2014,enrollment:543},{year:2015,enrollment:540},{year:2016,enrollment:525},{year:2017,enrollment:530},{year:2018,enrollment:535},{year:2019,enrollment:523},{year:2020,enrollment:461},{year:2021,enrollment:471},{year:2022,enrollment:474},{year:2023,enrollment:454},{year:2024,enrollment:440},{year:2025,enrollment:450}] }}},
-  { name: 'Nevin Platt Middle School', addr: '6096 Baseline Rd, Boulder', lat: 39.9994, lng: -105.2070, levels: ['middle'],
+  { name: 'Nevin Platt Middle School', addr: '6096 Baseline Rd, Boulder', lat: 40.0036, lng: -105.2113, levels: ['middle'],
     enrollmentByLevel: { middle: { current: 485, peak: 639, peakYear: 2016, pctOfPeak: 75.9, history: [{year:2014,enrollment:612},{year:2015,enrollment:629},{year:2016,enrollment:639},{year:2017,enrollment:624},{year:2018,enrollment:601},{year:2019,enrollment:570},{year:2020,enrollment:504},{year:2021,enrollment:504},{year:2022,enrollment:514},{year:2023,enrollment:494},{year:2024,enrollment:484},{year:2025,enrollment:485}] }}},
-  { name: 'Southern Hills Middle School', addr: '1500 Knox Dr, Boulder', lat: 39.9720, lng: -105.2600, levels: ['middle'],
+  { name: 'Southern Hills Middle School', addr: '1500 Knox Dr, Boulder', lat: 39.9749, lng: -105.2459, levels: ['middle'],
     enrollmentByLevel: { middle: { current: 560, peak: 560, peakYear: 2025, pctOfPeak: 100.0, history: [{year:2014,enrollment:501},{year:2015,enrollment:515},{year:2016,enrollment:494},{year:2017,enrollment:504},{year:2018,enrollment:503},{year:2019,enrollment:508},{year:2020,enrollment:444},{year:2021,enrollment:467},{year:2022,enrollment:476},{year:2023,enrollment:509},{year:2024,enrollment:539},{year:2025,enrollment:560}] }}},
-  { name: 'Summit Charter Middle School', addr: '4655 Hanover Ave, Boulder', lat: 39.9680, lng: -105.2490, levels: ['middle'],
+  { name: 'Summit Charter Middle School', addr: '4655 Hanover Ave, Boulder', lat: 39.9823, lng: -105.2414, levels: ['middle'],
     enrollmentByLevel: { middle: { current: 365, peak: 366, peakYear: 2024, pctOfPeak: 99.7, history: [{year:2014,enrollment:344},{year:2015,enrollment:342},{year:2016,enrollment:339},{year:2017,enrollment:345},{year:2018,enrollment:340},{year:2019,enrollment:343},{year:2020,enrollment:327},{year:2021,enrollment:334},{year:2022,enrollment:342},{year:2023,enrollment:359},{year:2024,enrollment:366},{year:2025,enrollment:365}] }}},
 
   // ── HIGH SCHOOLS ──
   { name: 'Boulder High School', addr: '1604 Arapahoe Ave, Boulder', lat: 40.0145, lng: -105.2720, levels: ['high'],
     enrollmentByLevel: { high: { current: 1768, peak: 2169, peakYear: 2019, pctOfPeak: 81.5, history: [{year:2014,enrollment:1997},{year:2015,enrollment:2031},{year:2016,enrollment:2098},{year:2017,enrollment:2134},{year:2018,enrollment:2162},{year:2019,enrollment:2169},{year:2020,enrollment:1991},{year:2021,enrollment:1975},{year:2022,enrollment:1943},{year:2023,enrollment:1877},{year:2024,enrollment:1823},{year:2025,enrollment:1768}] }}},
-  { name: 'Broomfield High School', addr: '1 Eagle Way, Broomfield', lat: 39.9410, lng: -105.0550, levels: ['high'],
+  { name: 'Broomfield High School', addr: '1 Eagle Way, Broomfield', lat: 39.9300, lng: -105.0751, levels: ['high'],
     enrollmentByLevel: { high: { current: 1658, peak: 1691, peakYear: 2023, pctOfPeak: 98.0, history: [{year:2014,enrollment:1451},{year:2015,enrollment:1461},{year:2016,enrollment:1506},{year:2017,enrollment:1524},{year:2018,enrollment:1549},{year:2019,enrollment:1576},{year:2020,enrollment:1513},{year:2021,enrollment:1589},{year:2022,enrollment:1644},{year:2023,enrollment:1691},{year:2024,enrollment:1674},{year:2025,enrollment:1658}] }}},
-  { name: 'Centaurus High School', addr: '10300 S Boulder Rd, Lafayette', lat: 39.9830, lng: -105.1170, levels: ['high'],
+  { name: 'Centaurus High School', addr: '10300 S Boulder Rd, Lafayette', lat: 39.9849, lng: -105.1076, levels: ['high'],
     enrollmentByLevel: { high: { current: 1551, peak: 1598, peakYear: 2021, pctOfPeak: 97.1, history: [{year:2014,enrollment:1356},{year:2015,enrollment:1372},{year:2016,enrollment:1373},{year:2017,enrollment:1413},{year:2018,enrollment:1430},{year:2019,enrollment:1451},{year:2020,enrollment:1408},{year:2021,enrollment:1598},{year:2022,enrollment:1572},{year:2023,enrollment:1574},{year:2024,enrollment:1567},{year:2025,enrollment:1551}] }}},
   { name: 'Fairview High School', addr: '1515 Greenbriar Blvd, Boulder', lat: 39.9740, lng: -105.2500, levels: ['high'],
     enrollmentByLevel: { high: { current: 1851, peak: 2228, peakYear: 2017, pctOfPeak: 83.1, history: [{year:2014,enrollment:2143},{year:2015,enrollment:2175},{year:2016,enrollment:2196},{year:2017,enrollment:2228},{year:2018,enrollment:2203},{year:2019,enrollment:2187},{year:2020,enrollment:2028},{year:2021,enrollment:2009},{year:2022,enrollment:1991},{year:2023,enrollment:1942},{year:2024,enrollment:1879},{year:2025,enrollment:1851}] }}},
   { name: 'Monarch High School', addr: '329 Campus Dr, Louisville', lat: 39.9500, lng: -105.1440, levels: ['high'],
     enrollmentByLevel: { high: { current: 1453, peak: 1726, peakYear: 2017, pctOfPeak: 84.2, history: [{year:2014,enrollment:1684},{year:2015,enrollment:1694},{year:2016,enrollment:1706},{year:2017,enrollment:1726},{year:2018,enrollment:1710},{year:2019,enrollment:1692},{year:2020,enrollment:1551},{year:2021,enrollment:1533},{year:2022,enrollment:1516},{year:2023,enrollment:1499},{year:2024,enrollment:1472},{year:2025,enrollment:1453}] }}},
-  { name: 'New Vista High School', addr: '700 20th St, Boulder', lat: 40.0180, lng: -105.2670, levels: ['high'],
+  { name: 'New Vista High School', addr: '700 20th St, Boulder', lat: 40.0020, lng: -105.2677, levels: ['high'],
     enrollmentByLevel: { high: { current: 307, peak: 328, peakYear: 2019, pctOfPeak: 93.6, history: [{year:2014,enrollment:253},{year:2015,enrollment:266},{year:2016,enrollment:269},{year:2017,enrollment:290},{year:2018,enrollment:310},{year:2019,enrollment:328},{year:2020,enrollment:300},{year:2021,enrollment:320},{year:2022,enrollment:316},{year:2023,enrollment:313},{year:2024,enrollment:307},{year:2025,enrollment:307}] }}},
-  { name: 'Nederland Middle-Senior', addr: '597 County Rd 130, Nederland', lat: 39.9620, lng: -105.5100, levels: ['middle', 'high'], extra: 'Mountain school · Grades 6-12',
+  { name: 'Nederland Middle-Senior', addr: '597 County Rd 130, Nederland', lat: 39.9532, lng: -105.5262, levels: ['middle', 'high'], extra: 'Mountain school · Grades 6-12',
     enrollmentByLevel: {
       middle: { current: 92, peak: 148, peakYear: 2014, pctOfPeak: 62.2, history: [{year:2014,enrollment:148},{year:2015,enrollment:140},{year:2016,enrollment:126},{year:2017,enrollment:119},{year:2018,enrollment:118},{year:2019,enrollment:108},{year:2020,enrollment:93},{year:2021,enrollment:86},{year:2022,enrollment:89},{year:2023,enrollment:83},{year:2024,enrollment:88},{year:2025,enrollment:92}] },
       high: { current: 100, peak: 155, peakYear: 2014, pctOfPeak: 64.5, history: [{year:2014,enrollment:155},{year:2015,enrollment:144},{year:2016,enrollment:141},{year:2017,enrollment:137},{year:2018,enrollment:127},{year:2019,enrollment:119},{year:2020,enrollment:107},{year:2021,enrollment:103},{year:2022,enrollment:100},{year:2023,enrollment:94},{year:2024,enrollment:97},{year:2025,enrollment:100}] }
     }},
 
   // ── ALTERNATIVE / OTHER HIGH SCHOOLS ──
-  { name: 'Halcyon School', addr: '3100 Bucknell Ct, Boulder', lat: 39.9880, lng: -105.2100, levels: ['middle', 'high'], extra: 'Alternative school',
+  { name: 'Halcyon School', addr: '3100 Bucknell Ct, Boulder', lat: 39.9928, lng: -105.2560, levels: ['middle', 'high'], extra: 'Alternative school',
     enrollmentByLevel: {
       middle: { current: null, peak: 5, peakYear: 2016, pctOfPeak: null, history: [] },
       high: { current: null, peak: 14, peakYear: 2014, pctOfPeak: null, history: [] }
@@ -468,9 +515,9 @@ const schools = [
   { name: 'Apex Home School Enrichment', addr: '6600 Arapahoe Rd, Boulder', lat: 39.9884, lng: -105.2055, levels: ['high'], extra: 'Homeschool enrichment' },
   { name: 'Arapahoe Ridge High School', addr: '6600 Arapahoe Rd, Boulder', lat: 39.9878, lng: -105.2045, levels: ['high'], extra: 'Alternative high school',
     enrollmentByLevel: { high: { current: 184, peak: 244, peakYear: 2023, pctOfPeak: 75.4, history: [{year:2014,enrollment:137},{year:2015,enrollment:132},{year:2016,enrollment:100},{year:2017,enrollment:105},{year:2018,enrollment:141},{year:2019,enrollment:88},{year:2020,enrollment:135},{year:2021,enrollment:135},{year:2022,enrollment:206},{year:2023,enrollment:244},{year:2024,enrollment:188},{year:2025,enrollment:184}] }}},
-  { name: 'Boulder Prep Charter', addr: '5075 Chaparral Ct, Boulder', lat: 40.0360, lng: -105.2290, levels: ['high'],
+  { name: 'Boulder Prep Charter', addr: '5075 Chaparral Ct, Boulder', lat: 40.0665, lng: -105.2029, levels: ['high'],
     enrollmentByLevel: { high: { current: 93, peak: 119, peakYear: 2022, pctOfPeak: 78.2, history: [{year:2014,enrollment:93},{year:2015,enrollment:84},{year:2016,enrollment:84},{year:2017,enrollment:88},{year:2018,enrollment:93},{year:2019,enrollment:101},{year:2020,enrollment:107},{year:2021,enrollment:115},{year:2022,enrollment:119},{year:2023,enrollment:111},{year:2024,enrollment:102},{year:2025,enrollment:93}] }}},
-  { name: 'Justice High School', addr: '805 Excalibur St, Lafayette', lat: 39.9910, lng: -105.0880, levels: ['middle', 'high'],
+  { name: 'Justice High School', addr: '805 Excalibur St, Lafayette', lat: 39.9873, lng: -105.0793, levels: ['middle', 'high'],
     enrollmentByLevel: {
       middle: { current: 6, peak: 10, peakYear: 2023, pctOfPeak: 60.0, history: [{year:2023,enrollment:10},{year:2024,enrollment:6},{year:2025,enrollment:6}] },
       high: { current: 86, peak: 118, peakYear: 2014, pctOfPeak: 72.9, history: [{year:2014,enrollment:118},{year:2015,enrollment:106},{year:2016,enrollment:101},{year:2017,enrollment:95},{year:2018,enrollment:96},{year:2019,enrollment:92},{year:2020,enrollment:85},{year:2021,enrollment:86},{year:2022,enrollment:98},{year:2023,enrollment:100},{year:2024,enrollment:91},{year:2025,enrollment:86}] }
@@ -478,9 +525,35 @@ const schools = [
   { name: 'BVSD Online', addr: '6500 Arapahoe Rd, Boulder', lat: 39.9876, lng: -105.2065, levels: ['middle', 'high'], extra: 'Online school' },
 ];
 
-// ─── FILTER STATE ───
+// ─── COLOR MODE + FILTER STATE ───
+let colorMode = 'enrollment'; // 'enrollment' or 'closure'
 let activeFilter = 'all';
 const markerEntries = [];
+
+const PURPLE = '#7c3aed';
+
+function closureColor(school) {
+  if (!school.closureRisk) return GRAY;
+  if (school.closureRisk === 'engagement') return RED;
+  if (school.closureRisk === 'advisory') return ORANGE;
+  if (school.closureRisk === 'projected') return PURPLE;
+  return GRAY;
+}
+
+function closureLabel(school) {
+  if (!school.closureRisk) return null;
+  if (school.closureRisk === 'engagement') return 'Community engagement phase';
+  if (school.closureRisk === 'advisory') return 'Advisory phase';
+  if (school.closureRisk === 'projected') return 'Projected at risk by 2030';
+  return null;
+}
+
+function getMarkerColor(school, level) {
+  if (colorMode === 'closure') return closureColor(school);
+  const eData = school.enrollmentByLevel && school.enrollmentByLevel[level];
+  const pct = eData && eData.pctOfPeak != null ? eData.pctOfPeak : null;
+  return riskColor(pct);
+}
 
 function buildMarkers() {
   markerEntries.forEach(m => map.removeLayer(m.marker));
@@ -488,9 +561,7 @@ function buildMarkers() {
 
   schools.forEach(school => {
     school.levels.forEach(level => {
-      const eData = school.enrollmentByLevel && school.enrollmentByLevel[level];
-      const pct = eData && eData.pctOfPeak != null ? eData.pctOfPeak : null;
-      const color = riskColor(pct);
+      const color = getMarkerColor(school, level);
       const icon = makeIcon(shapeFor[level], color, 20);
       const marker = L.marker([school.lat, school.lng], { icon })
         .bindPopup(buildPopup(school, level));
@@ -508,9 +579,7 @@ function applyFilter() {
       if (!seen.has(school.name)) {
         seen.add(school.name);
         const primaryLevel = school.levels[0];
-        const eData = school.enrollmentByLevel && school.enrollmentByLevel[primaryLevel];
-        const pct = eData && eData.pctOfPeak != null ? eData.pctOfPeak : null;
-        marker.setIcon(makeIcon(shapeFor[primaryLevel], riskColor(pct), 20));
+        marker.setIcon(makeIcon(shapeFor[primaryLevel], getMarkerColor(school, primaryLevel), 20));
         marker.setPopupContent(buildPopup(school, primaryLevel));
         marker.addTo(map);
       } else {
@@ -518,9 +587,7 @@ function applyFilter() {
       }
     } else {
       if (level === activeFilter) {
-        const eData = school.enrollmentByLevel && school.enrollmentByLevel[level];
-        const pct = eData && eData.pctOfPeak != null ? eData.pctOfPeak : null;
-        marker.setIcon(makeIcon(shapeFor[level], riskColor(pct), 20));
+        marker.setIcon(makeIcon(shapeFor[level], getMarkerColor(school, level), 20));
         marker.setPopupContent(buildPopup(school, level));
         marker.addTo(map);
       } else {
@@ -557,6 +624,17 @@ const filterContainer = document.getElementById('filters');
   btn.innerHTML = `${label}<span class="count">0</span>`;
   btn.addEventListener('click', () => { activeFilter = level; applyFilter(); });
   filterContainer.appendChild(btn);
+});
+
+// Wire up color mode toggle
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    colorMode = btn.dataset.mode;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b === btn));
+    document.getElementById('legend-enrollment').classList.toggle('visible', colorMode === 'enrollment');
+    document.getElementById('legend-closure').classList.toggle('visible', colorMode === 'closure');
+    applyFilter();
+  });
 });
 
 buildMarkers();
