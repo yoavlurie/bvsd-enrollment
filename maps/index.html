@@ -632,7 +632,14 @@ const filterContainer = document.getElementById('filters');
   btn.className = 'filter-btn' + (level === 'all' ? ' active' : '');
   btn.dataset.level = level;
   const label = { all: 'All Schools', elementary: 'Elementary', middle: 'Middle', high: 'High School', other: 'Other' }[level];
-  btn.innerHTML = `${label}<span class="count">0</span>`;
+  const shapeIcons = {
+    elementary: '<svg width="12" height="12" style="vertical-align:-1px;margin-right:4px"><circle cx="6" cy="6" r="5" fill="#888" stroke="#fff" stroke-width="1"/></svg>',
+    middle: '<svg width="12" height="12" style="vertical-align:-1px;margin-right:4px"><rect x="1" y="1" width="10" height="10" rx="2" fill="#888" stroke="#fff" stroke-width="1"/></svg>',
+    high: '<svg width="12" height="12" style="vertical-align:-1px;margin-right:4px"><polygon points="6,1 11,11 1,11" fill="#888" stroke="#fff" stroke-width="1"/></svg>',
+    other: '<svg width="12" height="12" style="vertical-align:-1px;margin-right:4px"><polygon points="6,1 11,6 6,11 1,6" fill="#888" stroke="#fff" stroke-width="1"/></svg>',
+  };
+  const icon = shapeIcons[level] || '';
+  btn.innerHTML = `${icon}${label}<span class="count">0</span>`;
   btn.addEventListener('click', () => {
     if (level === 'other') {
       // Toggle other on/off independently
