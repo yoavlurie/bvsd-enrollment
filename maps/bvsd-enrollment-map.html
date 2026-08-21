@@ -79,6 +79,18 @@
     gap: 6px;
     align-items: center;
   }
+  .panel-check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #666;
+    cursor: pointer;
+    user-select: none;
+  }
+  .panel-check input { accent-color: #2563eb; margin: 0; }
+  .panel-check .count { font-size: 11px; opacity: 0.7; }
   .filter-btn {
     padding: 6px 14px;
     border: 1.5px solid #ddd;
@@ -243,28 +255,100 @@
 
   /* Color mode toggle */
   .mode-toggle {
-    display: flex;
-    gap: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
     margin: 0 0 8px;
-    border: 1.5px solid #ddd;
-    border-radius: 8px;
-    overflow: hidden;
   }
   .mode-btn {
-    flex: 1;
     padding: 6px 8px;
     font-size: 11px;
     font-weight: 600;
     text-align: center;
     background: #fff;
-    border: none;
+    border: 1.5px solid #ddd;
+    border-radius: 8px;
     cursor: pointer;
     color: #666;
     transition: all 0.15s;
   }
-  .mode-btn { border-right: 1.5px solid #ddd; }
-  .mode-btn:last-child { border-right: none; }
-  .mode-btn.active { background: #2563eb; color: #fff; }
+  .mode-btn:hover { border-color: #999; }
+  .mode-btn.active { background: #2563eb; border-color: #2563eb; color: #fff; }
+
+  /* Search */
+  .search-wrap { position: relative; }
+  .search-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1.5px solid #ddd;
+    border-radius: 20px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    background: #fff;
+  }
+  .search-input:focus { border-color: #2563eb; }
+  .search-results {
+    /* In-flow (not absolute) so it is never clipped by the scrollable panel body */
+    margin-top: 6px;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    max-height: 220px;
+    overflow-y: auto;
+    display: none;
+  }
+  .search-results.open { display: block; }
+  .search-item {
+    padding: 7px 12px;
+    font-size: 13px;
+    color: #1a1a1a;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .search-item small { color: #888; font-size: 11px; white-space: nowrap; }
+  .search-item:hover, .search-item.active { background: #eff4ff; }
+  .search-empty { padding: 7px 12px; font-size: 12px; color: #999; }
+
+  /* District overview (collapsible) */
+  .overview summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    user-select: none;
+  }
+  .overview summary::-webkit-details-marker { display: none; }
+  .overview summary::after { content: '\25B8'; font-size: 12px; color: #999; transition: transform 0.15s; }
+  .overview[open] summary::after { transform: rotate(90deg); }
+  .overview summary:hover { color: #555; }
+  .ov-body { margin-top: 6px; }
+  .ov-head { font-size: 12.5px; color: #333; margin: 4px 0 2px; }
+  .ov-head b { font-weight: 700; color: #1a1a1a; }
+  .ov-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 12px;
+    color: #333;
+    padding: 3px 0 0;
+  }
+  .ov-row b { font-weight: 600; color: #1a1a1a; }
+  .ov-delta { font-size: 11px; font-weight: 700; margin-left: 6px; }
+  .ov-bar { height: 5px; background: #f0f0f0; border-radius: 3px; overflow: hidden; margin: 2px 0 2px; }
+  .ov-bar div { height: 100%; border-radius: 3px; }
+  .ov-sub { font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 10px; }
+  .ov-note { font-size: 10px; color: #999; margin-top: 6px; line-height: 1.4; }
   .legend-group { display: none; }
   .legend-group.visible { display: block; }
 
@@ -299,8 +383,23 @@
   </div>
   <div class="panel-body" id="panelBody">
     <div class="panel-section">
+      <div class="search-wrap">
+        <input id="schoolSearch" class="search-input" type="search" placeholder="Find a school…" autocomplete="off" spellcheck="false" aria-label="Find a school" aria-controls="searchResults">
+        <div id="searchResults" class="search-results" role="listbox"></div>
+      </div>
+    </div>
+    <details class="panel-section overview" id="overview">
+      <summary>District overview · 2025 → 2030</summary>
+      <div class="ov-body" id="overviewBody"></div>
+    </details>
+    <div class="panel-section">
       <div class="legend-section-label">School level</div>
       <div class="pill-row" id="filters"></div>
+      <label class="panel-check" for="showOtherToggle">
+        <input type="checkbox" id="showOtherToggle">
+        <svg width="12" height="12" aria-hidden="true"><polygon points="6,1 11,6 6,11 1,6" fill="#888" stroke="#fff" stroke-width="1"/></svg>
+        Show other programs <span class="count" id="otherCount">0</span>
+      </label>
     </div>
     <div class="panel-section">
       <div class="legend-section-label">Attendance boundaries</div>
@@ -308,10 +407,11 @@
     </div>
     <div class="panel-section">
       <div class="legend-section-label">Color by</div>
-      <div class="mode-toggle" style="flex-wrap:wrap">
-        <button class="mode-btn active" data-mode="enrollment" style="flex:1">% of Peak</button>
-        <button class="mode-btn" data-mode="capacity" style="flex:1">% of Capacity</button>
-        <button class="mode-btn" data-mode="closure" style="flex:1">Closure Risk</button>
+      <div class="mode-toggle">
+        <button class="mode-btn active" data-mode="enrollment">% of Peak</button>
+        <button class="mode-btn" data-mode="capacity">% of Capacity</button>
+        <button class="mode-btn" data-mode="projchange">Projected Change</button>
+        <button class="mode-btn" data-mode="closure">Closure Risk</button>
       </div>
       <div class="legend-group visible" id="legend-enrollment">
         <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Below 60% of 10-yr peak</div>
@@ -325,6 +425,13 @@
         <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div> 80% – 100%</div>
         <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div> Over capacity</div>
         <div class="legend-item"><div class="legend-dot" style="background:#aaa"></div> No data (high schools, some programs)</div>
+      </div>
+      <div class="legend-group" id="legend-projchange">
+        <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Projected to shrink 10%+ by ~2030</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div> Shrink 2% – 10%</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div> Roughly stable (±2%)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div> Grow 2%+</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#aaa"></div> No projection (high schools, some programs)</div>
       </div>
       <div class="legend-group" id="legend-closure">
         <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Community engagement (below 50%)</div>
@@ -506,6 +613,10 @@ function buildPopup(school, level) {
       html += `<div style="font-size:10px;color:#999;margin-bottom:2px">Projected enrollment</div>`;
       html += capInfo.projected.map(p => `<span style="margin-right:8px">'${String(p.year).slice(2)}: <b>${p.enrollment}</b></span>`).join('');
       html += `</div>`;
+    }
+    if (capInfo.projChange !== null) {
+      const pc = capInfo.projChange;
+      html += `<div class="popup-stat-row" style="margin-top:4px"><span class="popup-stat-label">Projected change by ${capInfo.projYear}</span><span class="popup-stat-value" style="color:${projChangeColor(pc)}">${pc > 0 ? '+' : ''}${pc}%</span></div>`;
     }
     if (capInfo.source) html += `<div style="margin-top:5px;font-size:10px;color:#aaa">${capInfo.source}</div>`;
     html += `</div>`;
@@ -770,10 +881,16 @@ schools.forEach(s => {
                 : null;
     if (!level) return;
     const eData = s.enrollmentByLevel[level];
+    const lastProj = cf.proj[cf.proj.length - 1];
+    const hasCurrent = !!(eData && eData.current);
     s.capacityByLevel[level] = {
       capacity: cf.capacity,
       projected: table.years.map((y, i) => ({ year: y, enrollment: cf.proj[i] })),
-      pctCapacity: eData && eData.current ? Math.round(eData.current / cf.capacity * 100) : null,
+      pctCapacity: hasCurrent ? Math.round(eData.current / cf.capacity * 100) : null,
+      // Projected enrollment change from today's count to the last projected year
+      projYear: table.years[table.years.length - 1],
+      projChange: hasCurrent ? Math.round((lastProj - eData.current) / eData.current * 100) : null,
+      projPctCapacity: Math.round(lastProj / cf.capacity * 100),
       source: table.source,
     };
   });
@@ -813,11 +930,24 @@ function capacityColor(pct) {
   return RED;
 }
 
+// Projected enrollment change (today → last projected year), in percent
+function projChangeColor(pct) {
+  if (pct === null || pct === undefined) return GRAY;
+  if (pct <= -10) return RED;
+  if (pct < -2) return ORANGE;
+  if (pct <= 2) return BLUE;
+  return GREEN;
+}
+
 function getMarkerColor(school, level) {
   if (colorMode === 'closure') return closureColor(school);
   if (colorMode === 'capacity') {
     const capInfo = school.capacityByLevel && school.capacityByLevel[level];
     return capacityColor(capInfo && capInfo.pctCapacity != null ? capInfo.pctCapacity : null);
+  }
+  if (colorMode === 'projchange') {
+    const capInfo = school.capacityByLevel && school.capacityByLevel[level];
+    return projChangeColor(capInfo ? capInfo.projChange : null);
   }
   const eData = school.enrollmentByLevel && school.enrollmentByLevel[level];
   const pct = eData && eData.pctOfPeak != null ? eData.pctOfPeak : null;
@@ -838,6 +968,7 @@ function buildMarkers() {
     });
   });
 
+  refreshPopupPadding();
   applyFilter();
 }
 
@@ -870,11 +1001,7 @@ function applyFilter() {
   });
 
   document.querySelectorAll('.filter-btn').forEach(btn => {
-    if (btn.dataset.level === 'other') {
-      btn.classList.toggle('active', showOther || activeFilter === 'other');
-    } else {
-      btn.classList.toggle('active', btn.dataset.level === activeFilter);
-    }
+    btn.classList.toggle('active', btn.dataset.level === activeFilter);
   });
   updateCounts();
 }
@@ -889,15 +1016,16 @@ function updateCounts() {
     const lvl = el.parentElement.dataset.level;
     el.textContent = lvl === 'all' ? counts.all.size : counts[lvl];
   });
+  document.getElementById('otherCount').textContent = counts.other;
 }
 
 // Build filter buttons
 const filterContainer = document.getElementById('filters');
-['all', 'elementary', 'middle', 'high', 'other'].forEach(level => {
+['all', 'elementary', 'middle', 'high'].forEach(level => {
   const btn = document.createElement('button');
   btn.className = 'filter-btn' + (level === 'all' ? ' active' : '');
   btn.dataset.level = level;
-  const label = { all: 'All Schools', elementary: 'Elementary', middle: 'Middle', high: 'High School', other: 'Other' }[level];
+  const label = { all: 'All Schools', elementary: 'Elementary', middle: 'Middle', high: 'High School' }[level];
   const shapeIcons = {
     elementary: '<svg width="12" height="12" style="vertical-align:-1px;margin-right:4px"><circle cx="6" cy="6" r="5" fill="#888" stroke="#fff" stroke-width="1"/></svg>',
     middle: '<svg width="12" height="12" style="vertical-align:-1px;margin-right:4px"><rect x="1" y="1" width="10" height="10" rx="2" fill="#888" stroke="#fff" stroke-width="1"/></svg>',
@@ -907,16 +1035,19 @@ const filterContainer = document.getElementById('filters');
   const icon = shapeIcons[level] || '';
   btn.innerHTML = `${icon}${label}<span class="count">0</span>`;
   btn.addEventListener('click', () => {
-    if (level === 'other') {
-      // Toggle other on/off independently
-      showOther = !showOther;
-    } else {
-      activeFilter = level;
-    }
+    activeFilter = level;
     applyFilter();
   });
-  if (level === 'other') btn.style.borderStyle = 'dashed';
   filterContainer.appendChild(btn);
+});
+
+// "Other" programs (online, alternative, preschool, Montessori…) sit behind a
+// checkbox rather than a level pill — they're not part of the level comparison.
+const otherToggle = document.getElementById('showOtherToggle');
+otherToggle.checked = showOther;
+otherToggle.addEventListener('change', () => {
+  showOther = otherToggle.checked;
+  applyFilter();
 });
 
 // Wire up color mode toggle
@@ -924,9 +1055,7 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     colorMode = btn.dataset.mode;
     document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b === btn));
-    ['enrollment', 'capacity', 'closure'].forEach(m => {
-      document.getElementById('legend-' + m).classList.toggle('visible', colorMode === m);
-    });
+    document.querySelectorAll('.legend-group').forEach(g => g.classList.toggle('visible', g.id === 'legend-' + colorMode));
     applyFilter();
   });
 });
@@ -949,7 +1078,7 @@ const boundaryFiles = {
 const boundaryLabels = {
   elementary: 'Elementary',
   middle:     'Middle',
-  high:       'High School',
+  high:       'HS', // short so the three pills fit on one line in the panel
 };
 const boundariesShown = { elementary: false, middle: false, high: false };
 const boundaryLayers = {};
@@ -1069,9 +1198,23 @@ function refreshPanelLabel() {
   panelToggleEl.textContent = collapsed ? (isMobile() ? 'Filters & legend ▲' : 'Show controls') : (isMobile() ? 'Hide ▼' : 'Hide');
   panelToggleEl.setAttribute('aria-expanded', String(!collapsed));
 }
+// Popups auto-pan to stay clear of the panel: pad the left by the panel's width on
+// desktop; on phones the sheet collapses when a card opens (see popupopen below),
+// so pad the bottom by the collapsed bar's height.
+function popupPadding() {
+  if (isMobile()) return { autoPanPaddingTopLeft: L.point(8, 40), autoPanPaddingBottomRight: L.point(8, 70) };
+  const left = panelEl.classList.contains('collapsed') ? 16 : panelEl.getBoundingClientRect().width + 28;
+  return { autoPanPaddingTopLeft: L.point(left, 16), autoPanPaddingBottomRight: L.point(16, 16) };
+}
+function refreshPopupPadding() {
+  const pad = popupPadding();
+  markerEntries.forEach(m => { const p = m.marker.getPopup(); if (p) Object.assign(p.options, pad); });
+}
+
 function setPanelCollapsed(collapsed, remember) {
   panelEl.classList.toggle('collapsed', collapsed);
   refreshPanelLabel();
+  refreshPopupPadding();
   // Only a deliberate tap is remembered — never the automatic default — so a
   // window that happened to load narrow doesn't lock the panel shut forever.
   if (remember) { try { localStorage.setItem('bvsd-panel', collapsed ? 'collapsed' : 'open'); } catch (e) { /* private mode */ } }
@@ -1092,7 +1235,152 @@ function applyLayoutDefaults() {
 mobileMQ.addEventListener('change', applyLayoutDefaults);
 applyLayoutDefaults();
 
+// ─── SEARCH & DEEP LINKS ───
+const slugify = s => s.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+schools.forEach(s => { s.slug = slugify(s.name); });
+
+// Pan to a school, make sure one of its markers is shown, and open its card
+function focusSchool(school, opts) {
+  const visible = () => markerEntries.find(m => m.school === school && map.hasLayer(m.marker));
+  let entry = visible();
+  if (!entry) {
+    if (school.levels.every(l => l === 'other')) showOther = true;
+    else activeFilter = 'all';
+    applyFilter();
+    entry = visible();
+  }
+  if (!entry) return;
+  // Open the card only after the view settles — auto-pan computed mid-animation
+  // would leave the popup under the panel. (popupopen also collapses the phone
+  // sheet and sets the URL hash.)
+  const target = L.latLng(school.lat, school.lng);
+  const zoom = Math.max(map.getZoom(), 13);
+  const open = () => entry.marker.openPopup();
+  const alreadyThere = map.getZoom() === zoom && map.getCenter().distanceTo(target) < 5;
+  if (alreadyThere) open();
+  else if (opts && opts.instant) { map.setView(target, zoom, { animate: false }); open(); }
+  else { map.once('moveend', open); map.setView(target, zoom, { animate: true }); }
+}
+
+// Keep the URL hash in sync with the open card so links can be shared
+map.on('popupopen', e => {
+  const entry = markerEntries.find(m => m.marker === e.popup._source);
+  if (entry) history.replaceState(null, '', '#' + entry.school.slug);
+  if (isMobile()) setPanelCollapsed(true, false); // the sheet would otherwise cover the card
+});
+function openFromHash() {
+  const slug = decodeURIComponent(location.hash.slice(1));
+  if (!slug) return;
+  const school = schools.find(s => s.slug === slug);
+  if (school) focusSchool(school, { instant: true });
+}
+window.addEventListener('hashchange', openFromHash);
+
+const searchInput = document.getElementById('schoolSearch');
+const searchResults = document.getElementById('searchResults');
+let searchMatches = [], searchActive = -1;
+
+function renderSearch() {
+  const q = searchInput.value.trim().toLowerCase();
+  if (!q) { searchResults.classList.remove('open'); searchMatches = []; return; }
+  searchMatches = schools
+    .filter(s => s.name.toLowerCase().includes(q) || (s.addr || '').toLowerCase().includes(q))
+    .slice(0, 8);
+  searchActive = searchMatches.length ? 0 : -1;
+  searchResults.innerHTML = searchMatches.length
+    ? searchMatches.map((s, i) =>
+        `<div class="search-item${i === searchActive ? ' active' : ''}" data-i="${i}" role="option">${s.name}<small>${s.levels.map(l => levelLabels[l]).join(' / ')}</small></div>`).join('')
+    : `<div class="search-empty">No school matches "${searchInput.value.trim()}"</div>`;
+  searchResults.classList.add('open');
+}
+function highlightSearch() {
+  searchResults.querySelectorAll('.search-item[data-i]').forEach(el => el.classList.toggle('active', +el.dataset.i === searchActive));
+}
+function pickSearch(i) {
+  const school = searchMatches[i];
+  if (!school) return;
+  searchInput.value = '';
+  searchResults.classList.remove('open');
+  searchInput.blur();
+  focusSchool(school);
+}
+searchInput.addEventListener('input', renderSearch);
+searchInput.addEventListener('focus', renderSearch);
+searchInput.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown') { e.preventDefault(); searchActive = Math.min(searchActive + 1, searchMatches.length - 1); highlightSearch(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); searchActive = Math.max(searchActive - 1, 0); highlightSearch(); }
+  else if (e.key === 'Enter') { pickSearch(searchActive); }
+  else if (e.key === 'Escape') { searchResults.classList.remove('open'); searchInput.blur(); }
+});
+// mousedown (not click) so the pick happens before the input's blur hides the list
+searchResults.addEventListener('mousedown', e => {
+  const item = e.target.closest('.search-item[data-i]');
+  if (item) { e.preventDefault(); pickSearch(+item.dataset.i); }
+});
+searchInput.addEventListener('blur', () => setTimeout(() => searchResults.classList.remove('open'), 150));
+
+// ─── DISTRICT OVERVIEW ───
+// Published BVSD totals; per-school numbers below are computed live from the map data.
+const districtTotals = {
+  // All schools incl. charters, excl. preschool. Oct 2025 count → 2030-31 projection.
+  // Source: BVSD Annual Enrollment Trend Report (Feb 10 2026), slide 6.
+  levels: [
+    { label: 'Elementary', now: 10427, proj: 10129 },
+    { label: 'Middle',     now: 6332,  proj: 5552 },
+    { label: 'High',       now: 9848,  proj: 9256 },
+  ],
+  total: { now: 26607, proj: 24937 },
+  // Building utilization, BVSD-run (non-charter) schools.
+  utilization: [
+    { label: 'Elementary', seats: 14543, now: 9689, nowYear: '2025-26', proj: 9408, projYear: '2030-31' }, // Feb 2026 capacity summary
+    { label: 'Middle',     seats: 8145,  now: 5538, nowYear: '2024-25', proj: 5133, projYear: '2029-30' }, // Oct 2025 worksession
+  ],
+  // Elementary schools meeting LRAC thresholds (Feb 2026 trend report, slide 10)
+  metrics: { now: { advisory: 7, engagement: 2 }, proj: { advisory: 6, engagement: 5 } },
+};
+
+function fmt(n) { return n.toLocaleString('en-US'); }
+function deltaHtml(now, proj) {
+  const pct = Math.round((proj - now) / now * 100);
+  return `<span class="ov-delta" style="color:${projChangeColor(pct)}">${pct > 0 ? '+' : ''}${pct}%</span>`;
+}
+function barHtml(pct, color) {
+  return `<div class="ov-bar"><div style="width:${Math.min(pct, 100)}%;background:${color}"></div></div>`;
+}
+
+function renderOverview() {
+  const d = districtTotals;
+  let html = '';
+  html += `<div class="ov-head">District K-12: <b>${fmt(d.total.now)}</b> → <b>${fmt(d.total.proj)}</b>${deltaHtml(d.total.now, d.total.proj)}</div>`;
+  d.levels.forEach(l => {
+    html += `<div class="ov-row"><span>${l.label}</span><span><b>${fmt(l.now)}</b> → <b>${fmt(l.proj)}</b>${deltaHtml(l.now, l.proj)}</span></div>`;
+  });
+
+  html += `<div class="ov-sub">Building utilization (BVSD-run)</div>`;
+  d.utilization.forEach(u => {
+    const nowPct = Math.round(u.now / u.seats * 100), projPct = Math.round(u.proj / u.seats * 100);
+    html += `<div class="ov-row"><span>${u.label} · ${fmt(u.seats)} seats</span><span><b>${nowPct}%</b> → <b>${projPct}%</b></span></div>`;
+    html += barHtml(nowPct, capacityColor(nowPct));
+  });
+
+  // Live counts from the per-school capacity data on this map
+  const entries = [];
+  schools.forEach(s => Object.entries(s.capacityByLevel || {}).forEach(([lvl, c]) => entries.push({ s, lvl, c })));
+  const under50Now  = entries.filter(e => e.c.pctCapacity !== null && e.c.pctCapacity < 50).length;
+  const under50Proj = entries.filter(e => e.c.projPctCapacity < 50).length;
+  const shrinking10 = entries.filter(e => e.c.projChange !== null && e.c.projChange <= -10).length;
+  html += `<div class="ov-sub">Schools with capacity data (${entries.length})</div>`;
+  html += `<div class="ov-row"><span>Below 50% of capacity</span><span><b>${under50Now}</b> today → <b>${under50Proj}</b> projected</span></div>`;
+  html += `<div class="ov-row"><span>Projected to shrink 10%+</span><span><b>${shrinking10}</b></span></div>`;
+  html += `<div class="ov-row"><span>Elementary in advisory / engagement phase</span><span><b>${d.metrics.now.advisory} / ${d.metrics.now.engagement}</b> → <b>${d.metrics.proj.advisory} / ${d.metrics.proj.engagement}</b></span></div>`;
+
+  html += `<div class="ov-note">District totals: BVSD Annual Enrollment Trend Report, Feb 2026 (all schools incl. charters, excl. preschool). Utilization: BVSD capacity tables (elementary Feb 2026, middle Oct 2025). Per-school counts cover elementary, middle and K-8 programs with published capacity; high schools have no published capacity.</div>`;
+  document.getElementById('overviewBody').innerHTML = html;
+}
+renderOverview();
+
 buildMarkers();
+openFromHash();
 </script>
 </body>
 </html>
