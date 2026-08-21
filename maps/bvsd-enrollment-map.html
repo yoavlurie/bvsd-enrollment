@@ -10,61 +10,73 @@
   html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
   #map { width: 100%; height: 100%; }
 
-  .card {
+  /* ─── Unified control panel (title + filters + boundaries + legend) ───
+     One card instead of four so the map stays navigable; collapses to a
+     single-line pill (desktop) or a slim bottom bar (mobile). */
+  .panel {
+    position: absolute;
+    top: 16px; left: 16px;
+    z-index: 1000;
+    width: 330px;
+    max-width: calc(100vw - 32px);
+    max-height: calc(100% - 32px);
+    display: flex;
+    flex-direction: column;
     background: #fff;
     border-radius: 12px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-    z-index: 1000;
-    position: absolute;
+    overflow: hidden;
   }
-
-  .title-card {
-    top: 16px; left: 16px;
-    padding: 14px 20px;
-    font-size: 17px;
+  .panel-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 12px 12px 18px;
+  }
+  .panel-title {
+    font-size: 16px;
     font-weight: 700;
     color: #1a1a1a;
-    max-width: calc(100vw - 32px);
+    line-height: 1.25;
   }
-  .title-card small {
+  .panel-title small {
     display: block;
     font-weight: 400;
-    font-size: 12px;
+    font-size: 11.5px;
     color: #666;
-    margin-top: 2px;
+    margin-top: 3px;
   }
-
-  .about-link {
-    position: absolute;
-    bottom: 16px; left: 16px;
-    z-index: 1000;
+  .panel-toggle {
+    flex-shrink: 0;
     padding: 5px 11px;
-    background: rgba(255,255,255,0.92);
+    border: 1.5px solid #ddd;
     border-radius: 16px;
+    background: #fff;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     color: #555;
-    text-decoration: none;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
   }
-  .about-link:hover { background: #fff; color: #1a1a1a; }
-
-  .filter-stack {
-    position: absolute;
-    top: 90px; left: 16px;
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    max-width: calc(100vw - 32px);
+  .panel-toggle:hover { border-color: #999; color: #1a1a1a; }
+  .panel-body {
+    overflow-y: auto;
+    padding: 2px 18px 14px;
+    border-top: 1px solid #eee;
   }
-  .filter-card {
-    position: relative;
-    top: auto; left: auto;
-    padding: 10px 14px;
+  .panel.collapsed { width: auto; }
+  .panel.collapsed .panel-body { display: none; }
+  .panel.collapsed .panel-title { font-size: 14px; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .panel.collapsed .panel-title small { display: none; }
+  .panel.collapsed .panel-header { align-items: center; padding: 9px 10px 9px 16px; }
+  .panel-section { margin-top: 12px; }
+  .panel-section .legend-section-label { margin-top: 0; }
+  .pill-row {
     display: flex;
-    gap: 6px;
     flex-wrap: wrap;
+    gap: 6px;
     align-items: center;
   }
   .filter-btn {
@@ -80,14 +92,6 @@
     user-select: none;
   }
   .filter-btn:hover { border-color: #999; }
-  .boundary-label {
-    font-size: 11px;
-    font-weight: 700;
-    color: #888;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    margin-right: 4px;
-  }
   .boundary-pill {
     padding: 6px 14px;
     border: 1.5px solid var(--c);
@@ -127,30 +131,6 @@
     opacity: 0.7;
   }
 
-  .legend-card {
-    top: 16px; right: 16px;
-    padding: 16px 20px;
-    min-width: 240px;
-  }
-  .legend-card h3 {
-    font-size: 14px;
-    font-weight: 700;
-    color: #1a1a1a;
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    cursor: pointer;
-    user-select: none;
-  }
-  .legend-toggle {
-    font-size: 16px;
-    color: #999;
-    transition: transform 0.2s;
-    display: none;
-  }
-  .legend-card.collapsed .legend-toggle { transform: rotate(180deg); }
-  .legend-card.collapsed .legend-body { display: none; }
   .legend-section-label {
     font-size: 11px;
     font-weight: 600;
@@ -174,21 +154,16 @@
     border-radius: 50%;
     flex-shrink: 0;
   }
-  .legend-shape {
-    width: 14px; height: 14px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
   .legend-source {
     font-size: 10px;
     color: #999;
-    margin-top: 12px;
-    line-height: 1.4;
+    margin-top: 14px;
+    line-height: 1.45;
     border-top: 1px solid #eee;
     padding-top: 8px;
   }
+  .legend-source a { color: #2563eb; text-decoration: none; font-weight: 600; }
+  .legend-source a:hover { text-decoration: underline; }
 
   /* Popup */
   .leaflet-popup-content-wrapper {
@@ -270,7 +245,7 @@
   .mode-toggle {
     display: flex;
     gap: 0;
-    margin: 10px 0 6px;
+    margin: 0 0 8px;
     border: 1.5px solid #ddd;
     border-radius: 8px;
     overflow: hidden;
@@ -294,74 +269,74 @@
   .legend-group.visible { display: block; }
 
   @media (max-width: 600px) {
-    .title-card { font-size: 14px; padding: 10px 14px; top: 10px; left: 10px; }
-    .filter-stack { top: 65px; left: 10px; right: 10px; max-width: none; }
-    /* legend card takes the bottom on mobile, so move About to top-right */
-    .about-link { bottom: auto; left: auto; top: 10px; right: 10px; }
-    .filter-card { top: auto; left: auto; right: auto; }
+    /* Panel becomes a bottom sheet: a slim bar when collapsed, scrollable when open */
+    .panel {
+      top: auto; left: 8px; right: 8px; bottom: 8px;
+      width: auto; max-width: none;
+      max-height: 70vh;
+    }
+    .panel-header { padding: 10px 10px 10px 14px; }
+    .panel-title { font-size: 14px; }
+    .panel.collapsed .panel-brand { display: none; } /* "Enrollment Dashboard" + button fit a phone width */
+    .panel-body { padding: 2px 14px 12px; }
     .filter-btn { padding: 5px 10px; font-size: 12px; }
     .boundary-pill { padding: 5px 10px; font-size: 12px; }
-    .boundary-label { font-size: 10px; }
-    .legend-card {
-      top: auto; bottom: 10px; right: 10px; left: 10px;
-      min-width: 0;
-      padding: 12px 14px;
-    }
-    .legend-toggle { display: inline; }
-    .legend-card h3 { margin-bottom: 0; }
-    .legend-card:not(.collapsed) h3 { margin-bottom: 10px; }
+    /* The sheet covers the bottom-right corner; rely on pinch-zoom and move attribution up (see JS) */
+    .leaflet-control-zoom { display: none; }
   }
 </style>
 </head>
 <body>
 <div id="map"></div>
 
-<div class="card title-card">
-  BVSD Schools — Enrollment Dashboard
-  <small>Boulder Valley School District · Enrollment 2014–2025 · Projected 2026–2030</small>
-</div>
-
-<a href="/about" class="about-link">About</a>
-
-<div class="filter-stack">
-  <div class="card filter-card" id="filters"></div>
-  <div class="card filter-card boundary-card" id="boundaries"></div>
-</div>
-
-<div class="card legend-card collapsed" id="legendCard">
-  <h3 onclick="document.getElementById('legendCard').classList.toggle('collapsed')">Legend <span class="legend-toggle">&#9650;</span></h3>
-  <div class="legend-body">
-  <div class="legend-section-label">Color By</div>
-  <div class="mode-toggle" style="flex-wrap:wrap">
-    <button class="mode-btn active" data-mode="enrollment" style="flex:1">% of Peak</button>
-    <button class="mode-btn" data-mode="capacity" style="flex:1">% of Capacity</button>
-    <button class="mode-btn" data-mode="closure" style="flex:1">Closure Risk</button>
+<div class="panel" id="panel">
+  <div class="panel-header">
+    <div class="panel-title">
+      <span class="panel-brand">BVSD Schools — </span>Enrollment Dashboard
+      <small>Boulder Valley School District · Enrollment 2014–2025 · Projected 2026–2030</small>
+    </div>
+    <button class="panel-toggle" id="panelToggle" aria-controls="panelBody" aria-expanded="true">Hide</button>
   </div>
-  <div class="legend-group visible" id="legend-enrollment">
-    <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Below 60%</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div> 60% – 79%</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div> 80% or above</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#aaa"></div> No data</div>
-  </div>
-  <div class="legend-group" id="legend-capacity">
-    <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Below 50%</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div> 50% – 79%</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div> 80% – 100%</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div> Over capacity</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#aaa"></div> No data</div>
-  </div>
-  <div class="legend-group" id="legend-closure">
-    <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Community engagement (below 50%)</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div> Advisory phase (below 60%)</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#7c3aed"></div> Projected at risk by 2030</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#aaa"></div> Not on closure list</div>
-  </div>
-  <div class="legend-section-label">School Level</div>
-  <div class="legend-item"><div class="legend-shape"><svg width="14" height="14"><circle cx="7" cy="7" r="6" fill="#666" stroke="#fff" stroke-width="1.5"/></svg></div> Elementary</div>
-  <div class="legend-item"><div class="legend-shape"><svg width="14" height="14"><rect x="1" y="1" width="12" height="12" rx="2" fill="#666" stroke="#fff" stroke-width="1.5"/></svg></div> Middle School</div>
-  <div class="legend-item"><div class="legend-shape"><svg width="14" height="14"><polygon points="7,1 13,13 1,13" fill="#666" stroke="#fff" stroke-width="1.5"/></svg></div> High School</div>
-  <div class="legend-item"><div class="legend-shape"><svg width="14" height="14"><polygon points="7,1 13,7 7,13 1,7" fill="#666" stroke="#fff" stroke-width="1.5"/></svg></div> Other</div>
-  <div class="legend-source">Source: BVSD October Headcount 2014–2025 · Resilient Schools process<br>bvsd.org/departments/enrollment/enrollment-statistics</div>
+  <div class="panel-body" id="panelBody">
+    <div class="panel-section">
+      <div class="legend-section-label">School level</div>
+      <div class="pill-row" id="filters"></div>
+    </div>
+    <div class="panel-section">
+      <div class="legend-section-label">Attendance boundaries</div>
+      <div class="pill-row" id="boundaries"></div>
+    </div>
+    <div class="panel-section">
+      <div class="legend-section-label">Color by</div>
+      <div class="mode-toggle" style="flex-wrap:wrap">
+        <button class="mode-btn active" data-mode="enrollment" style="flex:1">% of Peak</button>
+        <button class="mode-btn" data-mode="capacity" style="flex:1">% of Capacity</button>
+        <button class="mode-btn" data-mode="closure" style="flex:1">Closure Risk</button>
+      </div>
+      <div class="legend-group visible" id="legend-enrollment">
+        <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Below 60% of 10-yr peak</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div> 60% – 79%</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div> 80% or above</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#aaa"></div> No data</div>
+      </div>
+      <div class="legend-group" id="legend-capacity">
+        <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Below 50% of building capacity</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div> 50% – 79%</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div> 80% – 100%</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div> Over capacity</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#aaa"></div> No data (high schools, some programs)</div>
+      </div>
+      <div class="legend-group" id="legend-closure">
+        <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Community engagement (below 50%)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div> Advisory phase (below 60%)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#7c3aed"></div> Projected at risk by 2030</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#aaa"></div> Not on closure list</div>
+      </div>
+    </div>
+    <div class="legend-source">
+      Tap a school for its enrollment history, capacity and projections.<br>
+      Source: BVSD October Headcount 2014–2025 · Resilient Schools process · <a href="/about">About this project</a>
+    </div>
   </div>
 </div>
 
@@ -1064,13 +1039,8 @@ async function updateBoundaries() {
   }
 }
 
-// Build the Boundaries bar
+// Build the Boundaries pills
 const boundaryContainer = document.getElementById('boundaries');
-const boundaryLabelEl = document.createElement('span');
-boundaryLabelEl.className = 'boundary-label';
-boundaryLabelEl.textContent = 'Boundaries';
-boundaryContainer.appendChild(boundaryLabelEl);
-
 boundaryLevels.forEach(level => {
   const btn = document.createElement('button');
   btn.className = 'boundary-pill';
@@ -1084,10 +1054,43 @@ boundaryLevels.forEach(level => {
   boundaryContainer.appendChild(btn);
 });
 
-// On desktop, start legend expanded
-if (window.innerWidth > 600) {
-  document.getElementById('legendCard').classList.remove('collapsed');
+// ─── CONTROL PANEL (show / hide) ───
+const panelEl = document.getElementById('panel');
+const panelToggleEl = document.getElementById('panelToggle');
+const mobileMQ = window.matchMedia('(max-width: 600px)'); // keep in sync with the CSS breakpoint
+const isMobile = () => mobileMQ.matches;
+
+// Clicks/scrolls inside the panel must not drag or zoom the map underneath
+L.DomEvent.disableClickPropagation(panelEl);
+L.DomEvent.disableScrollPropagation(panelEl);
+
+function refreshPanelLabel() {
+  const collapsed = panelEl.classList.contains('collapsed');
+  panelToggleEl.textContent = collapsed ? (isMobile() ? 'Filters & legend ▲' : 'Show controls') : (isMobile() ? 'Hide ▼' : 'Hide');
+  panelToggleEl.setAttribute('aria-expanded', String(!collapsed));
 }
+function setPanelCollapsed(collapsed, remember) {
+  panelEl.classList.toggle('collapsed', collapsed);
+  refreshPanelLabel();
+  // Only a deliberate tap is remembered — never the automatic default — so a
+  // window that happened to load narrow doesn't lock the panel shut forever.
+  if (remember) { try { localStorage.setItem('bvsd-panel', collapsed ? 'collapsed' : 'open'); } catch (e) { /* private mode */ } }
+}
+panelToggleEl.addEventListener('click', () => setPanelCollapsed(!panelEl.classList.contains('collapsed'), true));
+
+// Remembered choice wins; otherwise open on desktop, tucked away on phones.
+// Re-applied whenever the viewport crosses the breakpoint (rotation, resize,
+// or a window that first painted narrow) so the default tracks the layout.
+let savedPanelState = null;
+try { savedPanelState = localStorage.getItem('bvsd-panel'); } catch (e) {}
+function applyLayoutDefaults() {
+  if (!savedPanelState) setPanelCollapsed(isMobile(), false);
+  else refreshPanelLabel();
+  // On phones the bottom sheet covers the default bottom-right attribution
+  map.attributionControl.setPosition(isMobile() ? 'topright' : 'bottomright');
+}
+mobileMQ.addEventListener('change', applyLayoutDefaults);
+applyLayoutDefaults();
 
 buildMarkers();
 </script>
