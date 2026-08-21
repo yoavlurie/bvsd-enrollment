@@ -34,12 +34,38 @@
     margin-top: 2px;
   }
 
-  .filter-card {
+  .about-link {
+    position: absolute;
+    bottom: 16px; left: 16px;
+    z-index: 1000;
+    padding: 5px 11px;
+    background: rgba(255,255,255,0.92);
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #555;
+    text-decoration: none;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .about-link:hover { background: #fff; color: #1a1a1a; }
+
+  .filter-stack {
+    position: absolute;
     top: 90px; left: 16px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: calc(100vw - 32px);
+  }
+  .filter-card {
+    position: relative;
+    top: auto; left: auto;
     padding: 10px 14px;
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
+    align-items: center;
   }
   .filter-btn {
     padding: 6px 14px;
@@ -54,6 +80,41 @@
     user-select: none;
   }
   .filter-btn:hover { border-color: #999; }
+  .boundary-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-right: 4px;
+  }
+  .boundary-pill {
+    padding: 6px 14px;
+    border: 1.5px solid var(--c);
+    border-radius: 20px;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--c);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .boundary-pill::before {
+    content: '';
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--c);
+    flex-shrink: 0;
+  }
+  .boundary-pill.active { background: var(--c); color: #fff; }
+  .boundary-pill.active::before { background: #fff; }
+  .boundary-pill[data-level="elementary"] { --c: #10b981; }
+  .boundary-pill[data-level="middle"]     { --c: #f59e0b; }
+  .boundary-pill[data-level="high"]       { --c: #8b5cf6; }
   .filter-btn.active {
     background: #2563eb;
     border-color: #2563eb;
@@ -76,7 +137,20 @@
     font-weight: 700;
     color: #1a1a1a;
     margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
   }
+  .legend-toggle {
+    font-size: 16px;
+    color: #999;
+    transition: transform 0.2s;
+    display: none;
+  }
+  .legend-card.collapsed .legend-toggle { transform: rotate(180deg); }
+  .legend-card.collapsed .legend-body { display: none; }
   .legend-section-label {
     font-size: 11px;
     font-weight: 600;
@@ -120,10 +194,17 @@
   .leaflet-popup-content-wrapper {
     border-radius: 10px !important;
     box-shadow: 0 2px 10px rgba(0,0,0,0.12) !important;
-    padding: 0 !important;
+    /* Spacing lives on the wrapper (padding), not the content (margin) — a
+       margin would collapse through the wrapper and leave the white box
+       shorter than the card, with the close × floating above it. */
+    padding: 16px 18px 14px !important;
+  }
+  .leaflet-container a.leaflet-popup-close-button {
+    top: 6px !important;
+    right: 6px !important;
   }
   .leaflet-popup-content {
-    margin: 14px 18px !important;
+    margin: 0 !important;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 13px;
     line-height: 1.5;
@@ -135,6 +216,7 @@
     font-size: 15px;
     color: #1a1a1a;
     margin-bottom: 2px;
+    padding-right: 20px; /* keep long names clear of the close × */
   }
   .popup-level {
     font-size: 11px;
@@ -205,20 +287,29 @@
     color: #666;
     transition: all 0.15s;
   }
-  .mode-btn:first-child { border-right: 1.5px solid #ddd; }
+  .mode-btn { border-right: 1.5px solid #ddd; }
+  .mode-btn:last-child { border-right: none; }
   .mode-btn.active { background: #2563eb; color: #fff; }
   .legend-group { display: none; }
   .legend-group.visible { display: block; }
 
   @media (max-width: 600px) {
     .title-card { font-size: 14px; padding: 10px 14px; top: 10px; left: 10px; }
-    .filter-card { top: 65px; left: 10px; right: 10px; }
+    .filter-stack { top: 65px; left: 10px; right: 10px; max-width: none; }
+    /* legend card takes the bottom on mobile, so move About to top-right */
+    .about-link { bottom: auto; left: auto; top: 10px; right: 10px; }
+    .filter-card { top: auto; left: auto; right: auto; }
     .filter-btn { padding: 5px 10px; font-size: 12px; }
+    .boundary-pill { padding: 5px 10px; font-size: 12px; }
+    .boundary-label { font-size: 10px; }
     .legend-card {
       top: auto; bottom: 10px; right: 10px; left: 10px;
       min-width: 0;
       padding: 12px 14px;
     }
+    .legend-toggle { display: inline; }
+    .legend-card h3 { margin-bottom: 0; }
+    .legend-card:not(.collapsed) h3 { margin-bottom: 10px; }
   }
 </style>
 </head>
@@ -227,22 +318,36 @@
 
 <div class="card title-card">
   BVSD Schools — Enrollment Dashboard
-  <small>Boulder Valley School District · October Headcount 2014–2025</small>
+  <small>Boulder Valley School District · Enrollment 2014–2025 · Projected 2026–2030</small>
 </div>
 
-<div class="card filter-card" id="filters"></div>
+<a href="/about" class="about-link">About</a>
 
-<div class="card legend-card">
-  <h3>Legend</h3>
+<div class="filter-stack">
+  <div class="card filter-card" id="filters"></div>
+  <div class="card filter-card boundary-card" id="boundaries"></div>
+</div>
+
+<div class="card legend-card collapsed" id="legendCard">
+  <h3 onclick="document.getElementById('legendCard').classList.toggle('collapsed')">Legend <span class="legend-toggle">&#9650;</span></h3>
+  <div class="legend-body">
   <div class="legend-section-label">Color By</div>
-  <div class="mode-toggle">
-    <button class="mode-btn active" data-mode="enrollment">% of Peak</button>
-    <button class="mode-btn" data-mode="closure">Closure Risk</button>
+  <div class="mode-toggle" style="flex-wrap:wrap">
+    <button class="mode-btn active" data-mode="enrollment" style="flex:1">% of Peak</button>
+    <button class="mode-btn" data-mode="capacity" style="flex:1">% of Capacity</button>
+    <button class="mode-btn" data-mode="closure" style="flex:1">Closure Risk</button>
   </div>
   <div class="legend-group visible" id="legend-enrollment">
     <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Below 60%</div>
     <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div> 60% – 79%</div>
     <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div> 80% or above</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#aaa"></div> No data</div>
+  </div>
+  <div class="legend-group" id="legend-capacity">
+    <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Below 50%</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div> 50% – 79%</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div> 80% – 100%</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div> Over capacity</div>
     <div class="legend-item"><div class="legend-dot" style="background:#aaa"></div> No data</div>
   </div>
   <div class="legend-group" id="legend-closure">
@@ -257,6 +362,7 @@
   <div class="legend-item"><div class="legend-shape"><svg width="14" height="14"><polygon points="7,1 13,13 1,13" fill="#666" stroke="#fff" stroke-width="1.5"/></svg></div> High School</div>
   <div class="legend-item"><div class="legend-shape"><svg width="14" height="14"><polygon points="7,1 13,7 7,13 1,7" fill="#666" stroke="#fff" stroke-width="1.5"/></svg></div> Other</div>
   <div class="legend-source">Source: BVSD October Headcount 2014–2025 · Resilient Schools process<br>bvsd.org/departments/enrollment/enrollment-statistics</div>
+  </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -322,6 +428,57 @@ function sparkline(history, width, height) {
   </svg>`;
 }
 
+// Sparkline showing % of capacity over time (historical + projected)
+function capacitySparkline(school, level, width, height) {
+  const capInfo = school.capacityByLevel && school.capacityByLevel[level];
+  if (!capInfo) return '';
+  const eData = school.enrollmentByLevel && school.enrollmentByLevel[level];
+  if (!eData || !eData.history || eData.history.length < 2) return '';
+
+  const cap = capInfo.capacity;
+  const histPcts = eData.history.map(h => ({ year: h.year, pct: h.enrollment / cap * 100 }));
+  const projPcts = (capInfo.projected || []).map(p => ({ year: p.year, pct: p.enrollment / cap * 100 }));
+  const allPcts = [...histPcts, ...projPcts];
+
+  const mx = Math.max(120, ...allPcts.map(p => p.pct));
+  const step = width / (allPcts.length - 1);
+  const refY = (height - (100 / mx) * height).toFixed(1);
+
+  let svg = `<svg width="${width}" height="${height + 12}" style="display:block">`;
+  svg += `<line x1="0" y1="${refY}" x2="${width}" y2="${refY}" stroke="#ddd" stroke-width="1" stroke-dasharray="3,3"/>`;
+  svg += `<text x="${width}" y="${parseFloat(refY) - 2}" fill="#bbb" font-size="7" text-anchor="end">100% cap</text>`;
+
+  // Historical line (solid)
+  const histCoords = histPcts.map((p, i) =>
+    `${(i * step).toFixed(1)},${(height - (p.pct / mx) * height).toFixed(1)}`);
+  if (histCoords.length > 1) {
+    svg += `<polyline points="${histCoords.join(' ')}" fill="none" stroke="#666" stroke-width="1.5" stroke-linejoin="round"/>`;
+  }
+
+  // Projected line (dashed, connects from last historical point)
+  if (projPcts.length > 0) {
+    const startIdx = histPcts.length - 1;
+    const projCoords = [];
+    for (let i = startIdx; i < allPcts.length; i++) {
+      projCoords.push(`${(i * step).toFixed(1)},${(height - (allPcts[i].pct / mx) * height).toFixed(1)}`);
+    }
+    svg += `<polyline points="${projCoords.join(' ')}" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="4,3"/>`;
+  }
+
+  // End dot
+  const lastIdx = allPcts.length - 1;
+  const lastX = (lastIdx * step).toFixed(1);
+  const lastY = (height - (allPcts[lastIdx].pct / mx) * height).toFixed(1);
+  svg += `<circle cx="${lastX}" cy="${lastY}" r="3" fill="${capacityColor(allPcts[lastIdx].pct)}"/>`;
+
+  // Year labels
+  svg += `<text x="0" y="${height + 10}" fill="#bbb" font-size="7">'${String(allPcts[0].year).slice(2)}</text>`;
+  svg += `<text x="${width}" y="${height + 10}" fill="#bbb" font-size="7" text-anchor="end">'${String(allPcts[lastIdx].year).slice(2)}</text>`;
+
+  svg += `</svg>`;
+  return svg;
+}
+
 function buildPopup(school, level) {
   const levelLabel = school.levels.length > 1
     ? school.levels.map(l => levelLabels[l]).join(' / ')
@@ -349,6 +506,34 @@ function buildPopup(school, level) {
       html += sparkline(eData.history, 190, 40);
       html += `</div>`;
     }
+  }
+
+  // Capacity & projections for this level (elementary and middle tables; see capacityForecast)
+  const capInfo = school.capacityByLevel && school.capacityByLevel[level];
+  if (capInfo) {
+    const capPct = capInfo.pctCapacity;
+    html += `<div style="border-top:1px solid #eee;margin-top:8px;padding-top:6px">`;
+    html += `<div class="popup-stat-row"><span class="popup-stat-label">Building capacity</span><span class="popup-stat-value">${capInfo.capacity}</span></div>`;
+    if (capPct !== null) {
+      const capColor = capacityColor(capPct);
+      html += `<div class="popup-stat-row"><span class="popup-stat-label">% of capacity</span><span class="popup-stat-value" style="color:${capColor}">${capPct}%</span></div>`;
+      html += `<div class="popup-bar-container"><div class="popup-bar" style="width:${Math.min(capPct, 100)}%;background:${capColor}"></div></div>`;
+    }
+    const capSpark = capacitySparkline(school, level, 190, 40);
+    if (capSpark) {
+      html += `<div class="popup-sparkline">`;
+      html += `<div class="popup-sparkline-label">% of capacity over time <span style="color:#2563eb">— projected</span></div>`;
+      html += capSpark;
+      html += `</div>`;
+    }
+    if (capInfo.projected && capInfo.projected.length > 0) {
+      html += `<div style="margin-top:6px;font-size:11px;color:#666">`;
+      html += `<div style="font-size:10px;color:#999;margin-bottom:2px">Projected enrollment</div>`;
+      html += capInfo.projected.map(p => `<span style="margin-right:8px">'${String(p.year).slice(2)}: <b>${p.enrollment}</b></span>`).join('');
+      html += `</div>`;
+    }
+    if (capInfo.source) html += `<div style="margin-top:5px;font-size:10px;color:#aaa">${capInfo.source}</div>`;
+    html += `</div>`;
   }
 
   if (school.extra) html += `<div style="margin-top:6px;font-size:12px;color:#666">${school.extra}</div>`;
@@ -527,6 +712,98 @@ const schools = [
   { name: 'Colorado Preschool Program (CPP)', lat: 40.014, lng: -105.268, levels: ['other'], extra: 'Preschool program' },
 ];
 
+// ─── CAPACITY & FORECAST DATA ───
+// Keyed by level, then by school name. Each school entry: { capacity, proj: [...] }
+// where proj[i] is projected enrollment for years[i] (labeled by fall year).
+//
+// Elementary: BVSD Annual Enrollment Trend Report (Board, Feb 10 2026), "Capacity
+//   Summary 2025-26" updated 1/26/2026. Projections cover 2026-27 … 2030-31.
+const elementaryForecast = {
+  'Flatirons Elementary': { capacity: 320, proj: [149,144,149,146,177] },
+  'Heatherwood Elementary': { capacity: 492, proj: [216,209,214,203,210] },
+  'Kohl Elementary': { capacity: 541, proj: [258,258,256,262,266] },
+  'Mesa Elementary': { capacity: 418, proj: [217,203,203,202,201] },
+  'Coal Creek Elementary': { capacity: 492, proj: [256,252,256,251,248] },
+  'Columbine Elementary': { capacity: 590, proj: [322,322,325,321,322] },
+  'Creekside Elementary': { capacity: 369, proj: [277,252,226,223,215] },
+  'Crest View Elementary': { capacity: 615, proj: [318,304,300,310,327] },
+  'Douglass Elementary': { capacity: 418, proj: [278,278,272,277,284] },
+  'Eisenhower Elementary': { capacity: 492, proj: [253,246,246,247,255] },
+  'Louisville Elementary': { capacity: 590, proj: [373,363,360,355,343] },
+  "Alicia Sanchez Int'l School": { capacity: 418, proj: [286,284,278,289,298] },
+  'University Hill Elementary': { capacity: 590, proj: [359,348,336,338,345] },
+  'Whittier International Elementary': { capacity: 442, proj: [256,256,247,236,232] },
+  'Bear Creek Elementary': { capacity: 492, proj: [299,293,288,310,320] },
+  'Birch Elementary': { capacity: 418, proj: [238,215,205,211,208] },
+  'Emerald Elementary': { capacity: 393, proj: [355,341,337,346,345] },
+  'Escuela Bilingue Pioneer': { capacity: 541, proj: [349,341,337,336,343] },
+  'Fireside Elementary': { capacity: 516, proj: [385,373,358,355,359] },
+  'Foothill Elementary': { capacity: 565, proj: [437,444,439,432,438] },
+  'Gold Hill Elementary': { capacity: 49, proj: [13,13,13,12,12] },
+  'Jamestown Elementary': { capacity: 25, proj: [19,17,16,16,14] },
+  'Lafayette Elementary': { capacity: 565, proj: [454,435,420,411,392] },
+  'Nederland Elementary': { capacity: 467, proj: [171,166,167,169,160] },
+  'Ryan Elementary': { capacity: 467, proj: [381,365,348,337,346] },
+  'Superior Elementary': { capacity: 467, proj: [425,430,434,420,433] },
+  'Eldorado PK-8': { capacity: 568, proj: [253,247,248,250,249] },
+  'Monarch PK-8': { capacity: 381, proj: [270,258,258,274,264] },
+  'Aspen Creek K-8': { capacity: 440, proj: [490,503,510,511,504] },
+  'Meadowlark PK-8': { capacity: 441, proj: [479,511,544,577,605] },
+  'Community Montessori': { capacity: 369, proj: [175,172,163,167,167] },
+};
+
+// Middle: BVSD Declining Enrollment Worksession (Board, Oct 21 2025), "Middle Level
+//   5-Year Projections". Capacity is the 2024 figure; the table projects 2025-26 …
+//   2029-30. The 2025-26 column is omitted here because actual Oct-2025 counts are
+//   already in enrollmentByLevel, so proj covers 2026-27 … 2029-30. For K-8s this is
+//   the grade 6-8 portion only. Schools with no published capacity (Justice, Peak to
+//   Peak, Halcyon, Boulder Universal) are not listed.
+const middleForecast = {
+  'Angevine Middle School':           { capacity: 941, proj: [635,671,675,691] },
+  'Broomfield Heights Middle School': { capacity: 832, proj: [441,450,453,437] },
+  'Casey Middle School':              { capacity: 743, proj: [329,311,304,299] },
+  'Centennial Middle School':         { capacity: 753, proj: [567,562,555,561] },
+  'Louisville Middle School':         { capacity: 708, proj: [595,578,539,503] },
+  'Manhattan Middle School':          { capacity: 643, proj: [494,460,457,431] },
+  'Nevin Platt Middle School':        { capacity: 862, proj: [432,447,438,456] },
+  'Southern Hills Middle School':     { capacity: 659, proj: [488,473,473,453] },
+  'Summit Charter Middle School':     { capacity: 368, proj: [364,364,364,364] },
+  'Nederland Middle-Senior':          { capacity: 254, proj: [94,97,91,88] },
+  'Eldorado PK-8':                    { capacity: 494, proj: [215,223,209,195] },
+  'Monarch PK-8':                     { capacity: 509, proj: [422,404,406,361] },
+  'Aspen Creek K-8':                  { capacity: 497, proj: [398,392,401,387] },
+  'Meadowlark PK-8':                  { capacity: 250, proj: [255,254,236,229] },
+  'Horizons K-8':                     { capacity: 149, proj: [123,127,130,131] },
+};
+
+const capacityForecast = {
+  elementary: { years: [2026, 2027, 2028, 2029, 2030], schools: elementaryForecast,
+                source: 'Capacity & projections: BVSD Annual Enrollment Trend Report, Feb 2026' },
+  middle:     { years: [2026, 2027, 2028, 2029], schools: middleForecast,
+                source: 'Capacity (2024) & projections: BVSD Enrollment Worksession, Oct 2025' },
+};
+
+// Attach per-level capacity info: school.capacityByLevel[level] = { capacity, projected, pctCapacity, source }
+schools.forEach(s => {
+  s.capacityByLevel = {};
+  Object.entries(capacityForecast).forEach(([tableLevel, table]) => {
+    const cf = table.schools[s.name];
+    if (!cf) return;
+    // The elementary table also covers ungraded programs filed under 'other' (Community Montessori)
+    const level = s.enrollmentByLevel[tableLevel] ? tableLevel
+                : (tableLevel === 'elementary' && s.enrollmentByLevel.other) ? 'other'
+                : null;
+    if (!level) return;
+    const eData = s.enrollmentByLevel[level];
+    s.capacityByLevel[level] = {
+      capacity: cf.capacity,
+      projected: table.years.map((y, i) => ({ year: y, enrollment: cf.proj[i] })),
+      pctCapacity: eData && eData.current ? Math.round(eData.current / cf.capacity * 100) : null,
+      source: table.source,
+    };
+  });
+});
+
 // ─── COLOR MODE + FILTER STATE ───
 let colorMode = 'enrollment'; // 'enrollment' or 'closure'
 let activeFilter = 'all';
@@ -551,8 +828,22 @@ function closureLabel(school) {
   return null;
 }
 
+const GREEN = '#10b981';
+
+function capacityColor(pct) {
+  if (pct === null) return GRAY;
+  if (pct > 100) return GREEN;
+  if (pct >= 80) return BLUE;
+  if (pct >= 50) return ORANGE;
+  return RED;
+}
+
 function getMarkerColor(school, level) {
   if (colorMode === 'closure') return closureColor(school);
+  if (colorMode === 'capacity') {
+    const capInfo = school.capacityByLevel && school.capacityByLevel[level];
+    return capacityColor(capInfo && capInfo.pctCapacity != null ? capInfo.pctCapacity : null);
+  }
   const eData = school.enrollmentByLevel && school.enrollmentByLevel[level];
   const pct = eData && eData.pctOfPeak != null ? eData.pctOfPeak : null;
   return riskColor(pct);
@@ -658,11 +949,145 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     colorMode = btn.dataset.mode;
     document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b === btn));
-    document.getElementById('legend-enrollment').classList.toggle('visible', colorMode === 'enrollment');
-    document.getElementById('legend-closure').classList.toggle('visible', colorMode === 'closure');
+    ['enrollment', 'capacity', 'closure'].forEach(m => {
+      document.getElementById('legend-' + m).classList.toggle('visible', colorMode === m);
+    });
     applyFilter();
   });
 });
+
+// ─── BOUNDARY OVERLAYS ───
+// Dedicated SVG renderer with large padding so polygons stay rendered when
+// the user zooms in past them (default padding 0.1 drops far-off-screen paths).
+const boundaryRenderer = L.svg({ padding: 5 });
+const boundaryLevels = ['elementary', 'middle', 'high'];
+const boundaryColors = {
+  elementary: '#10b981',
+  middle:     '#f59e0b',
+  high:       '#8b5cf6',
+};
+const boundaryFiles = {
+  elementary: 'bvsd_elem_attendance_areas.geojson',
+  middle:     'bvsd_ms_attendance_areas.geojson',
+  high:       'bvsd_hs_attendance_areas.geojson',
+};
+const boundaryLabels = {
+  elementary: 'Elementary',
+  middle:     'Middle',
+  high:       'High School',
+};
+const boundariesShown = { elementary: false, middle: false, high: false };
+const boundaryLayers = {};
+const boundaryCache = {};
+
+function boundaryStyle(level) {
+  const c = boundaryColors[level];
+  return {
+    color: c,
+    weight: 2,
+    opacity: 0.75,
+    fillColor: c,
+    fillOpacity: 0.06,
+    dashArray: '5,5'
+  };
+}
+
+// Match a boundary's short SchName ("Platt", "Aspen Creek", "Whittier") + SchType
+// to the curated schools array ("Nevin Platt Middle School", "Aspen Creek K-8",
+// "Whittier International Elementary"), so the boundary popup shows the same
+// current capacity/enrollment numbers as clicking the school's marker.
+const boundaryLevelMap = { Elementary: 'elementary', Middle: 'middle', High: 'high' };
+function matchBoundarySchool(p) {
+  const level = boundaryLevelMap[p.SchType];
+  const short = (p.SchName || '').trim();
+  if (!level || !short) return null;
+  const escaped = short.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`(^|[\\s\\-])${escaped}($|[\\s\\-])`);
+  return schools.find(s => s.levels.includes(level) && re.test(s.name)) || null;
+}
+
+function boundaryPopup(feature) {
+  const p = feature.properties;
+  const level = boundaryLevelMap[p.SchType];
+  const matched = matchBoundarySchool(p);
+  if (matched && level) return buildPopup(matched, level);
+  // Fallback for combined / unmatched catchments (e.g. BC-Mesa, Boulder-Fairview)
+  return `<div class="popup-name">${p.SchName}</div>`
+       + `<div class="popup-level">${p.SchType} Attendance Area</div>`;
+}
+
+async function loadBoundary(level) {
+  if (boundaryCache[level]) return boundaryCache[level];
+  const resp = await fetch(boundaryFiles[level]);
+  const data = await resp.json();
+  boundaryCache[level] = data;
+  return data;
+}
+
+function removeBoundaryLayer(level) {
+  const layer = boundaryLayers[level];
+  if (layer && layer !== 'loading') map.removeLayer(layer);
+  delete boundaryLayers[level];
+}
+
+async function addBoundaryLayer(level) {
+  if (boundaryLayers[level]) return;
+  boundaryLayers[level] = 'loading'; // sentinel prevents race during await
+  try {
+    const data = await loadBoundary(level);
+    if (boundaryLayers[level] !== 'loading') return; // toggled off mid-load
+    const baseStyle = boundaryStyle(level);
+    const layer = L.geoJSON(data, {
+      renderer: boundaryRenderer,
+      style: () => baseStyle,
+      // noClip keeps polygons rendered even when offscreen, so panning/zooming
+      // doesn't make eastern catchments (Lafayette/Louisville/Broomfield) vanish.
+      noClip: true,
+      onEachFeature: (feature, lyr) => {
+        lyr.bindPopup(boundaryPopup(feature));
+        lyr.on('mouseover', function() { this.setStyle({ fillOpacity: 0.2, weight: 3 }); });
+        lyr.on('mouseout', function() { this.setStyle({ fillOpacity: 0.06, weight: 2 }); });
+      }
+    }).addTo(map);
+    layer.bringToBack();
+    boundaryLayers[level] = layer;
+  } catch (e) {
+    delete boundaryLayers[level];
+    throw e;
+  }
+}
+
+async function updateBoundaries() {
+  for (const level of boundaryLevels) {
+    if (boundariesShown[level]) await addBoundaryLayer(level);
+    else removeBoundaryLayer(level);
+  }
+}
+
+// Build the Boundaries bar
+const boundaryContainer = document.getElementById('boundaries');
+const boundaryLabelEl = document.createElement('span');
+boundaryLabelEl.className = 'boundary-label';
+boundaryLabelEl.textContent = 'Boundaries';
+boundaryContainer.appendChild(boundaryLabelEl);
+
+boundaryLevels.forEach(level => {
+  const btn = document.createElement('button');
+  btn.className = 'boundary-pill';
+  btn.dataset.level = level;
+  btn.textContent = boundaryLabels[level];
+  btn.addEventListener('click', () => {
+    boundariesShown[level] = !boundariesShown[level];
+    btn.classList.toggle('active', boundariesShown[level]);
+    updateBoundaries();
+  });
+  boundaryContainer.appendChild(btn);
+});
+
+// On desktop, start legend expanded
+if (window.innerWidth > 600) {
+  document.getElementById('legendCard').classList.remove('collapsed');
+}
 
 buildMarkers();
 </script>
