@@ -442,7 +442,7 @@
     </div>
     <div class="legend-source">
       Tap a school for its enrollment history, capacity and projections.<br>
-      Source: BVSD October Headcount 2014–2025 · Resilient Schools process · <a href="/about">About this project</a>
+      Source: BVSD October Headcount 2014–2025 · Resilient Schools process · <a href="/about">About &amp; data sources</a>
     </div>
   </div>
 </div>
@@ -452,10 +452,14 @@
 const map = L.map('map', { zoomControl: false }).setView([39.985, -105.185], 11);
 L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-  attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://osm.org/copyright">OpenStreetMap</a>',
-  subdomains: 'abcd',
-  maxZoom: 19
+// Esri Light Gray canvas — CARTO's free basemaps now watermark tiles served
+// without an API key. Esri's canvas tiles top out at zoom 16.
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+  attribution: 'Powered by <a href="https://www.esri.com/">Esri</a> &copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors',
+  maxZoom: 16
+}).addTo(map);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 16
 }).addTo(map);
 
 const RED = '#E24B4A', ORANGE = '#EF9F27', BLUE = '#378ADD', GRAY = '#aaa';
