@@ -1010,9 +1010,10 @@ const proposals = {
   'Mesa Elementary':        { action: 'close', text: 'Would close; the Mesa and Bear Creek school communities would merge in the Bear Creek building.' },
   'Flatirons Elementary':   { action: 'close', text: 'Would close; its attendance area would be divided between Whittier and Foothill.' },
   'Birch Elementary':       { action: 'close', text: 'Would close; the Birch and Kohl school communities would merge in the Kohl building.' },
-  'Community Montessori':   { action: 'relocate', text: 'Would move to the former High Peaks space on the Aurora 7 campus, co-locating with BCSIS. Its current building would close.' },
+  // Community Montessori (a preschool program, kept out of this dashboard's
+  // school-level analyses) also appears in BVSD's proposal: it would move to
+  // the Aurora 7 campus. Deliberately not visualized here.
   'High Peaks Elementary':  { action: 'relocate', text: 'Would move to the Douglass Elementary campus.' },
-  'BCSIS':                  { action: 'receive', text: 'Would share the Aurora 7 campus with Community Montessori, which would move into the former High Peaks space.' },
   'Kohl Elementary':        { action: 'receive', text: 'Would receive the Birch school community; the two schools would merge in the Kohl building.' },
   'Bear Creek Elementary':  { action: 'receive', text: 'Would receive the Mesa school community; the two schools would merge in the Bear Creek building.' },
   'Whittier International Elementary': { action: 'receive', text: 'Would receive part of the Flatirons attendance area.' },
@@ -1040,7 +1041,6 @@ const proposalFlows = [
   { from: 'Monarch PK-8',          to: 'Eldorado PK-8',          kind: 'students' },
   { from: 'Eldorado PK-8',         to: 'Monarch PK-8',           kind: 'students' },
   { from: 'High Peaks Elementary', to: 'Douglass Elementary',    kind: 'move' },
-  { from: 'Community Montessori',  to: 'BCSIS',                  kind: 'move' },
 ];
 
 // Post-change enrollment & utilization by school and level, from the Aug 25
@@ -1088,9 +1088,9 @@ function proposalPct2030(school, level) {
     const last = pe.points[pe.points.length - 1];
     return { pct: Math.round((last.pctLo + last.pctHi) / 2) };
   }
-  // Relocating schools (Community Montessori, High Peaks): their status-quo
-  // projection is for the building they would leave — post-move utilization
-  // is unpublished, so treat as no data rather than mislead.
+  // Relocating schools (High Peaks): their status-quo projection is for the
+  // building they would leave — post-move utilization is unpublished, so
+  // treat as no data rather than mislead.
   const p = proposals[school.name];
   if (p && p.action === 'relocate') return null;
   const c = school.capacityByLevel && school.capacityByLevel[level];
@@ -1637,9 +1637,11 @@ function renderOverview() {
     html += barHtml(nowPct, capacityColor(nowPct));
   });
 
-  // Live counts from the per-school capacity data on this map
+  // Live counts from the per-school capacity data on this map. 'other'-category
+  // programs (e.g. Community Montessori, a preschool) are intentionally outside
+  // this dashboard's school-level analyses.
   const entries = [];
-  schools.forEach(s => Object.entries(s.capacityByLevel || {}).forEach(([lvl, c]) => entries.push({ s, lvl, c })));
+  schools.forEach(s => Object.entries(s.capacityByLevel || {}).forEach(([lvl, c]) => { if (lvl !== 'other') entries.push({ s, lvl, c }); }));
   const under50Now  = entries.filter(e => e.c.pctCapacity !== null && e.c.pctCapacity < 50).length;
   const under50Proj = entries.filter(e => e.c.projPctCapacity < 50).length;
   const shrinking10 = entries.filter(e => e.c.projChange !== null && e.c.projChange <= -10).length;
@@ -1656,6 +1658,7 @@ function renderOverview() {
   schools.forEach(s => {
     if (MOUNTAIN_EXEMPT.has(s.name)) return;
     Object.keys(s.capacityByLevel || {}).forEach(lvl => {
+      if (lvl === 'other') return; // preschool/alternative programs are out of scope
       const r = proposalPct2030(s, lvl);
       if (r && !r.closed && r.pct < 60) still.push({ name: s.name, lvl, pct: r.pct });
     });
