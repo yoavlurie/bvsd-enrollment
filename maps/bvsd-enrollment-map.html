@@ -481,8 +481,8 @@
           <button class="sub-btn" data-view="proj">2030 status quo</button>
           <button class="sub-btn" data-view="proposal">2030 w/ proposal</button>
         </div>
-        <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Below 50% of building capacity</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div> 50% – 79%</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Below 60% of building capacity</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div> 60% – 79%</div>
         <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div> 80% – 100%</div>
         <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div> Over capacity</div>
         <div class="legend-item"><div class="legend-dot" style="background:#555"></div> Building closed (proposal view)</div>
@@ -1120,8 +1120,8 @@ function capacityColor(pct) {
   if (pct === null) return GRAY;
   if (pct > 100) return GREEN;
   if (pct >= 80) return BLUE;
-  if (pct >= 50) return ORANGE;
-  return RED;
+  if (pct >= 60) return ORANGE;
+  return RED; // below 60% — BVSD's advisory-phase capacity line
 }
 
 // Projected enrollment change (today → last projected year), in percent
