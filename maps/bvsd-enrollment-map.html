@@ -486,7 +486,7 @@
         <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div> 80% – 100%</div>
         <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div> Over capacity</div>
         <div class="legend-item"><div class="legend-dot" style="background:#555"></div> Building closed (proposal view)</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#aaa"></div> No data (high schools, some programs)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#aaa"></div> No data or exempt (high schools, mountain schools)</div>
         <div style="font-size:10.5px;color:#999;margin-top:4px">"2030 w/ proposal" uses BVSD's post-change projections for affected schools and its status-quo projections for the rest.</div>
       </div>
       <div class="legend-group" id="legend-projchange">
@@ -999,6 +999,11 @@ schools.forEach(s => {
 // Descriptions use BVSD's own language. Board vote Sept 22, 2026; changes take
 // effect in 2027-28 if approved. Source: bvsd.org/current-topics/declining-enrollment
 // and the Aug 25 worksession deck (linked on the About page).
+// Mountain schools are exempt from BVSD's enrollment/capacity criteria (grayed
+// out in the district's own capacity tables) and unaddressed by the proposal,
+// so capacity views and the under-60% analyses leave them out.
+const MOUNTAIN_EXEMPT = new Set(['Gold Hill Elementary', 'Jamestown Elementary', 'Nederland Elementary', 'Nederland Middle-Senior']);
+
 const PROPOSAL_ACTIONS = {
   close:       { color: '#E24B4A' },
   receive:     { color: '#378ADD' },
@@ -1139,6 +1144,7 @@ function getMarkerColor(school, level) {
     return p ? PROPOSAL_ACTIONS[p.action].color : GRAY;
   }
   if (colorMode === 'capacity') {
+    if (MOUNTAIN_EXEMPT.has(school.name)) return GRAY; // shown as exempt, like BVSD's tables
     const capInfo = school.capacityByLevel && school.capacityByLevel[level];
     if (capacityView === 'proposal') {
       const r = proposalPct2030(school, level);
@@ -1664,7 +1670,6 @@ function renderOverview() {
   // What the Aug 25 proposal would NOT change: schools still under 60% of
   // capacity in ~2030 even if every proposed change is adopted. Mountain
   // schools are excluded, matching BVSD's own exemption from LRAC criteria.
-  const MOUNTAIN_EXEMPT = new Set(['Gold Hill Elementary', 'Jamestown Elementary', 'Nederland Elementary', 'Nederland Middle-Senior']);
   const still = [];
   schools.forEach(s => {
     if (MOUNTAIN_EXEMPT.has(s.name)) return;
