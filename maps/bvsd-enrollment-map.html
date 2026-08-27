@@ -435,7 +435,8 @@
   <div class="panel-body" id="panelBody">
     <div class="proposal-note">
       <b>Resilient Schools proposal (Aug 25):</b> BVSD proposes to close, consolidate, reconfigure or relocate eight schools, effective 2027-28 if approved. Board vote Sept.&nbsp;22.
-      <a href="#" id="viewProposal">See it on the map</a> · <a href="https://www.bvsd.org/current-topics/declining-enrollment" target="_blank" rel="noopener">BVSD details</a>
+      <a href="#" id="viewProposal">See it on the map</a> · <a href="https://www.bvsd.org/current-topics/declining-enrollment" target="_blank" rel="noopener">BVSD website</a>
+      <div style="margin-top:6px">Even if adopted, <b><span id="stillBelowCount">–</span> schools</b> would remain below 60% of capacity in ~2030. <a href="#" id="viewResidual">See which</a></div>
     </div>
     <div class="panel-section">
       <div class="search-wrap">
@@ -1010,10 +1011,12 @@ const proposals = {
   'Mesa Elementary':        { action: 'close', text: 'Would close; the Mesa and Bear Creek school communities would merge in the Bear Creek building.' },
   'Flatirons Elementary':   { action: 'close', text: 'Would close; its attendance area would be divided between Whittier and Foothill.' },
   'Birch Elementary':       { action: 'close', text: 'Would close; the Birch and Kohl school communities would merge in the Kohl building.' },
-  // Community Montessori (a preschool program, kept out of this dashboard's
-  // school-level analyses) also appears in BVSD's proposal: it would move to
-  // the Aurora 7 campus. Deliberately not visualized here.
+  // Community Montessori is a preschool program and stays out of this
+  // dashboard's school-level analyses (overview counts, under-60% list),
+  // but its proposed move is still visualized on the map and its card.
+  'Community Montessori':   { action: 'relocate', text: 'Would move to the former High Peaks space on the Aurora 7 campus, co-locating with BCSIS. Its current building would close.' },
   'High Peaks Elementary':  { action: 'relocate', text: 'Would move to the Douglass Elementary campus.' },
+  'BCSIS':                  { action: 'receive', text: 'Would share the Aurora 7 campus with Community Montessori, which would move into the former High Peaks space.' },
   'Kohl Elementary':        { action: 'receive', text: 'Would receive the Birch school community; the two schools would merge in the Kohl building.' },
   'Bear Creek Elementary':  { action: 'receive', text: 'Would receive the Mesa school community; the two schools would merge in the Bear Creek building.' },
   'Whittier International Elementary': { action: 'receive', text: 'Would receive part of the Flatirons attendance area.' },
@@ -1041,6 +1044,7 @@ const proposalFlows = [
   { from: 'Monarch PK-8',          to: 'Eldorado PK-8',          kind: 'students' },
   { from: 'Eldorado PK-8',         to: 'Monarch PK-8',           kind: 'students' },
   { from: 'High Peaks Elementary', to: 'Douglass Elementary',    kind: 'move' },
+  { from: 'Community Montessori',  to: 'BCSIS',                  kind: 'move' },
 ];
 
 // Post-change enrollment & utilization by school and level, from the Aug 25
@@ -1323,6 +1327,13 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
 document.getElementById('viewProposal').addEventListener('click', e => {
   e.preventDefault();
   document.querySelector('.mode-btn[data-mode="proposal"]').click();
+});
+
+// "See which" jumps straight to the capacity map, 2030-with-proposal view
+document.getElementById('viewResidual').addEventListener('click', e => {
+  e.preventDefault();
+  document.querySelector('.mode-btn[data-mode="capacity"]').click();
+  document.querySelector('#capacityView .sub-btn[data-view="proposal"]').click();
 });
 
 // Capacity-mode sub-view: Today / 2030 status quo / 2030 with proposal
@@ -1664,6 +1675,8 @@ function renderOverview() {
     });
   });
   still.sort((a, b) => a.pct - b.pct);
+  const stillCountEl = document.getElementById('stillBelowCount');
+  if (stillCountEl) stillCountEl.textContent = still.length;
   const shortName = n => n.replace(/ (International )?Elementary$/, '').replace(/ Middle School$/, '').replace(' Charter', '');
   html += `<div class="ov-sub">After the proposal (~2030)</div>`;
   html += `<div class="ov-row"><span>Still below 60% of capacity</span><span><b>${still.length}</b> schools</span></div>`;
