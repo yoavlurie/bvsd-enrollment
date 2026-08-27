@@ -247,6 +247,41 @@
     font-weight: 600;
     margin-top: 8px;
   }
+  .popup-proposal {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: #fff7ed;
+    border-left: 3px solid #f59e0b;
+    border-radius: 0 6px 6px 0;
+    font-size: 12px;
+    color: #444;
+    line-height: 1.45;
+  }
+  .popup-proposal-title {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #b45309;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 3px;
+  }
+  .popup-proposal-meta { font-size: 10px; color: #999; margin-top: 5px; }
+  .popup-proposal-meta a { color: #2563eb; text-decoration: none; }
+
+  .proposal-note {
+    margin-top: 12px;
+    padding: 9px 11px;
+    background: #fff7ed;
+    border: 1px solid #fde3c0;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #555;
+    line-height: 1.45;
+  }
+  .proposal-note b { color: #b45309; }
+  .proposal-note a { color: #2563eb; text-decoration: none; font-weight: 600; }
+  .proposal-note a:hover { text-decoration: underline; }
+
   .status-red { background: #fde8e8; color: #c0392b; }
   .status-orange { background: #fef3e2; color: #d4800a; }
   .status-blue { background: #e8f1fb; color: #2471a3; }
@@ -382,6 +417,10 @@
     <button class="panel-toggle" id="panelToggle" aria-controls="panelBody" aria-expanded="true">Hide</button>
   </div>
   <div class="panel-body" id="panelBody">
+    <div class="proposal-note">
+      <b>Resilient Schools proposal (Aug 25):</b> BVSD proposes to close, consolidate, reconfigure or relocate eight schools, effective 2027-28 if approved. Board vote Sept.&nbsp;22.
+      <a href="#" id="viewProposal">See it on the map</a> · <a href="https://www.bvsd.org/current-topics/declining-enrollment" target="_blank" rel="noopener">BVSD details</a>
+    </div>
     <div class="panel-section">
       <div class="search-wrap">
         <input id="schoolSearch" class="search-input" type="search" placeholder="Find a school…" autocomplete="off" spellcheck="false" aria-label="Find a school" aria-controls="searchResults">
@@ -411,7 +450,7 @@
         <button class="mode-btn active" data-mode="enrollment">% of Peak</button>
         <button class="mode-btn" data-mode="capacity">% of Capacity</button>
         <button class="mode-btn" data-mode="projchange">Projected Change</button>
-        <button class="mode-btn" data-mode="closure">Closure Risk</button>
+        <button class="mode-btn" data-mode="proposal">Proposed Plan</button>
       </div>
       <div class="legend-group visible" id="legend-enrollment">
         <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Below 60% of 10-yr peak</div>
@@ -433,11 +472,13 @@
         <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div> Grow 2%+</div>
         <div class="legend-item"><div class="legend-dot" style="background:#aaa"></div> No projection (high schools, some programs)</div>
       </div>
-      <div class="legend-group" id="legend-closure">
-        <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Community engagement (below 50%)</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div> Advisory phase (below 60%)</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#7c3aed"></div> Projected at risk by 2030</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#aaa"></div> Not on closure list</div>
+      <div class="legend-group" id="legend-proposal">
+        <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Building would close</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div> Would receive students or a program</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#7c3aed"></div> School would relocate</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div> Grade reconfiguration (PK-8)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#aaa"></div> No change proposed</div>
+        <div style="font-size:10.5px;color:#999;margin-top:4px">Arrows show where students and programs would go. Proposed Aug 25, 2026; Board vote Sept. 22.</div>
       </div>
     </div>
     <div class="legend-source">
@@ -627,6 +668,16 @@ function buildPopup(school, level) {
   }
 
   if (school.extra) html += `<div style="margin-top:6px;font-size:12px;color:#666">${school.extra}</div>`;
+
+  // Resilient Schools proposal (Aug 25, 2026)
+  const prop = proposals[school.name];
+  if (prop) {
+    html += `<div class="popup-proposal">`;
+    html += `<div class="popup-proposal-title">Proposed plan · Aug 25, 2026</div>`;
+    html += prop.text;
+    html += `<div class="popup-proposal-meta">Board vote Sept. 22, 2026 · effective 2027-28 if approved · <a href="https://www.bvsd.org/current-topics/declining-enrollment" target="_blank" rel="noopener">BVSD details</a></div>`;
+    html += `</div>`;
+  }
 
   // Closure risk status
   const cl = closureLabel(school);
@@ -900,6 +951,55 @@ schools.forEach(s => {
   });
 });
 
+// ─── RESILIENT SCHOOLS PROPOSAL (presented to the Board Aug 25, 2026) ───
+// Descriptions use BVSD's own language. Board vote Sept 22, 2026; changes take
+// effect in 2027-28 if approved. Source: bvsd.org/current-topics/declining-enrollment
+// and the Aug 25 worksession deck (linked on the About page).
+const PROPOSAL_ACTIONS = {
+  close:       { color: '#E24B4A' },
+  receive:     { color: '#378ADD' },
+  relocate:    { color: '#7c3aed' },
+  reconfigure: { color: '#EF9F27' },
+};
+
+const proposals = {
+  'Douglass Elementary':    { action: 'close', text: 'Would close. Its attendance area would be divided among Coal Creek, Eisenhower and Heatherwood, and High Peaks would move to the Douglass campus.' },
+  'Mesa Elementary':        { action: 'close', text: 'Would close; the Mesa and Bear Creek school communities would merge in the Bear Creek building.' },
+  'Flatirons Elementary':   { action: 'close', text: 'Would close; its attendance area would be divided between Whittier and Foothill.' },
+  'Birch Elementary':       { action: 'close', text: 'Would close; the Birch and Kohl school communities would merge in the Kohl building.' },
+  'Community Montessori':   { action: 'relocate', text: 'Would move to the former High Peaks space on the Aurora 7 campus, co-locating with BCSIS. Its current building would close.' },
+  'High Peaks Elementary':  { action: 'relocate', text: 'Would move to the Douglass Elementary campus.' },
+  'BCSIS':                  { action: 'receive', text: 'Would share the Aurora 7 campus with Community Montessori, which would move into the former High Peaks space.' },
+  'Kohl Elementary':        { action: 'receive', text: 'Would receive the Birch school community; the two schools would merge in the Kohl building.' },
+  'Bear Creek Elementary':  { action: 'receive', text: 'Would receive the Mesa school community; the two schools would merge in the Bear Creek building.' },
+  'Whittier International Elementary': { action: 'receive', text: 'Would receive part of the Flatirons attendance area.' },
+  'Foothill Elementary':    { action: 'receive', text: 'Would receive part of the Flatirons attendance area.' },
+  'Coal Creek Elementary':  { action: 'receive', text: 'Would receive part of the Douglass attendance area.' },
+  'Eisenhower Elementary':  { action: 'receive', text: 'Would receive part of the Douglass attendance area.' },
+  'Heatherwood Elementary': { action: 'receive', text: 'Would receive part of the Douglass attendance area.' },
+  'Fireside Elementary':    { action: 'receive', text: 'Would receive part of the Monarch PK-5 attendance area.' },
+  'Superior Elementary':    { action: 'receive', text: 'Would receive part of the Monarch PK-5 attendance area.' },
+  'Eldorado PK-8':          { action: 'reconfigure', text: 'Would become an elementary school, dropping grades 6-8, and receive part of the Monarch PK-5 attendance area. The Eldorado and Monarch 6-8 attendance areas would combine at Monarch.' },
+  'Monarch PK-8':           { action: 'reconfigure', text: 'Would become a middle school. Its PK-5 attendance area would be divided among Fireside, Superior and Eldorado; the Eldorado and Monarch 6-8 attendance areas would combine.' },
+};
+
+// Where students (solid) and relocating schools (dashed) would go
+const proposalFlows = [
+  { from: 'Douglass Elementary',   to: 'Coal Creek Elementary',  kind: 'students' },
+  { from: 'Douglass Elementary',   to: 'Eisenhower Elementary',  kind: 'students' },
+  { from: 'Douglass Elementary',   to: 'Heatherwood Elementary', kind: 'students' },
+  { from: 'Flatirons Elementary',  to: 'Whittier International Elementary', kind: 'students' },
+  { from: 'Flatirons Elementary',  to: 'Foothill Elementary',    kind: 'students' },
+  { from: 'Mesa Elementary',       to: 'Bear Creek Elementary',  kind: 'students' },
+  { from: 'Birch Elementary',      to: 'Kohl Elementary',        kind: 'students' },
+  { from: 'Monarch PK-8',          to: 'Fireside Elementary',    kind: 'students' },
+  { from: 'Monarch PK-8',          to: 'Superior Elementary',    kind: 'students' },
+  { from: 'Monarch PK-8',          to: 'Eldorado PK-8',          kind: 'students' },
+  { from: 'Eldorado PK-8',         to: 'Monarch PK-8',           kind: 'students' },
+  { from: 'High Peaks Elementary', to: 'Douglass Elementary',    kind: 'move' },
+  { from: 'Community Montessori',  to: 'BCSIS',                  kind: 'move' },
+];
+
 // ─── COLOR MODE + FILTER STATE ───
 let colorMode = 'enrollment'; // 'enrollment' or 'closure'
 let activeFilter = 'all';
@@ -907,14 +1007,6 @@ let showOther = false; // "Other" toggled off by default
 const markerEntries = [];
 
 const PURPLE = '#7c3aed';
-
-function closureColor(school) {
-  if (!school.closureRisk) return GRAY;
-  if (school.closureRisk === 'engagement') return RED;
-  if (school.closureRisk === 'advisory') return ORANGE;
-  if (school.closureRisk === 'projected') return PURPLE;
-  return GRAY;
-}
 
 function closureLabel(school) {
   if (!school.closureRisk) return null;
@@ -944,7 +1036,10 @@ function projChangeColor(pct) {
 }
 
 function getMarkerColor(school, level) {
-  if (colorMode === 'closure') return closureColor(school);
+  if (colorMode === 'proposal') {
+    const p = proposals[school.name];
+    return p ? PROPOSAL_ACTIONS[p.action].color : GRAY;
+  }
   if (colorMode === 'capacity') {
     const capInfo = school.capacityByLevel && school.capacityByLevel[level];
     return capacityColor(capInfo && capInfo.pctCapacity != null ? capInfo.pctCapacity : null);
@@ -1054,14 +1149,78 @@ otherToggle.addEventListener('change', () => {
   applyFilter();
 });
 
+// ─── PROPOSAL ARROWS ───
+// Curved arrows from each closing/reconfiguring school to where its students
+// (solid) or its program (dashed) would go. Shown only in "Proposed Plan" mode.
+const proposalLayer = L.layerGroup();
+
+function bezierPoints(a, b, curvature) {
+  // Quadratic bezier in lat/lng space, control point offset perpendicular to the midpoint
+  const mx = (a.lat + b.lat) / 2, my = (a.lng + b.lng) / 2;
+  const cx = mx - (b.lng - a.lng) * curvature;
+  const cy = my + (b.lat - a.lat) * curvature;
+  const pts = [];
+  for (let i = 0; i <= 24; i++) {
+    const t = i / 24, u = 1 - t;
+    pts.push([u * u * a.lat + 2 * u * t * cx + t * t * b.lat,
+              u * u * a.lng + 2 * u * t * cy + t * t * b.lng]);
+  }
+  return pts;
+}
+
+function buildProposalLayer() {
+  const byName = {};
+  schools.forEach(s => { byName[s.name] = s; });
+  proposalFlows.forEach(f => {
+    const from = byName[f.from], to = byName[f.to];
+    if (!from || !to) return;
+    const fromAction = proposals[f.from] && proposals[f.from].action;
+    const color = f.kind === 'move' ? PURPLE : PROPOSAL_ACTIONS[fromAction] ? PROPOSAL_ACTIONS[fromAction].color : '#555';
+    const pts = bezierPoints({ lat: from.lat, lng: from.lng }, { lat: to.lat, lng: to.lng }, 0.18);
+    const line = L.polyline(pts, {
+      color, weight: 2.5, opacity: 0.75,
+      dashArray: f.kind === 'move' ? '6,5' : null,
+    }).bindTooltip(`${f.from} → ${f.to}` + (f.kind === 'move' ? ' (relocation)' : ''), { sticky: true });
+    proposalLayer.addLayer(line);
+
+    // Arrowhead near the destination, angled along the curve (Mercator preserves local angles)
+    const tip = pts[21], prev = pts[20];
+    const east = (tip[1] - prev[1]) * Math.cos(tip[0] * Math.PI / 180);
+    const north = tip[0] - prev[0];
+    const angle = Math.atan2(east, north) * 180 / Math.PI;
+    proposalLayer.addLayer(L.marker(tip, {
+      interactive: false,
+      icon: L.divIcon({
+        className: '',
+        iconSize: [14, 14],
+        iconAnchor: [7, 7],
+        html: `<svg width="14" height="14" style="transform:rotate(${angle.toFixed(1)}deg)"><polygon points="7,0 12.5,13 7,9.5 1.5,13" fill="${color}"/></svg>`
+      })
+    }));
+  });
+}
+buildProposalLayer();
+
+function syncProposalLayer() {
+  if (colorMode === 'proposal') proposalLayer.addTo(map);
+  else map.removeLayer(proposalLayer);
+}
+
 // Wire up color mode toggle
 document.querySelectorAll('.mode-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     colorMode = btn.dataset.mode;
     document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b === btn));
     document.querySelectorAll('.legend-group').forEach(g => g.classList.toggle('visible', g.id === 'legend-' + colorMode));
+    syncProposalLayer();
     applyFilter();
   });
+});
+
+// "See it on the map" in the proposal note switches to Proposed Plan mode
+document.getElementById('viewProposal').addEventListener('click', e => {
+  e.preventDefault();
+  document.querySelector('.mode-btn[data-mode="proposal"]').click();
 });
 
 // ─── BOUNDARY OVERLAYS ───
