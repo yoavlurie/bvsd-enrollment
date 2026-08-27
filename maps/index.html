@@ -309,6 +309,22 @@
   }
   .mode-btn:hover { border-color: #999; }
   .mode-btn.active { background: #2563eb; border-color: #2563eb; color: #fff; }
+  .sub-toggle { display: flex; gap: 4px; margin: 0 0 8px; }
+  .sub-btn {
+    flex: 1;
+    padding: 4px 5px;
+    font-size: 10.5px;
+    font-weight: 600;
+    text-align: center;
+    color: #666;
+    background: #fff;
+    border: 1.5px solid #ddd;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .sub-btn:hover { border-color: #999; }
+  .sub-btn.active { background: #2563eb; border-color: #2563eb; color: #fff; }
 
   /* Search */
   .search-wrap { position: relative; }
@@ -459,11 +475,18 @@
         <div class="legend-item"><div class="legend-dot" style="background:#aaa"></div> No data</div>
       </div>
       <div class="legend-group" id="legend-capacity">
+        <div class="sub-toggle" id="capacityView">
+          <button class="sub-btn active" data-view="now">Today</button>
+          <button class="sub-btn" data-view="proj">2030 status quo</button>
+          <button class="sub-btn" data-view="proposal">2030 w/ proposal</button>
+        </div>
         <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Below 50% of building capacity</div>
         <div class="legend-item"><div class="legend-dot" style="background:#EF9F27"></div> 50% – 79%</div>
         <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div> 80% – 100%</div>
         <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div> Over capacity</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#555"></div> Building closed (proposal view)</div>
         <div class="legend-item"><div class="legend-dot" style="background:#aaa"></div> No data (high schools, some programs)</div>
+        <div style="font-size:10.5px;color:#999;margin-top:4px">"2030 w/ proposal" uses BVSD's post-change projections for affected schools and its status-quo projections for the rest.</div>
       </div>
       <div class="legend-group" id="legend-projchange">
         <div class="legend-item"><div class="legend-dot" style="background:#E24B4A"></div> Projected to shrink 10%+ by ~2030</div>
@@ -1052,7 +1075,27 @@ const proposalProjections = {
 };
 
 // ─── COLOR MODE + FILTER STATE ───
-let colorMode = 'enrollment'; // 'enrollment' or 'closure'
+let colorMode = 'enrollment'; // 'enrollment' | 'capacity' | 'projchange' | 'proposal'
+let capacityView = 'now';     // capacity mode sub-view: 'now' | 'proj' | 'proposal'
+
+// 2030 utilization if the proposal is adopted: BVSD's post-change figure for
+// affected schools (midpoint of its range), its status-quo projection otherwise.
+// Returns {pct} or {closed:true}; null when the school has no capacity data.
+function proposalPct2030(school, level) {
+  const pe = (proposalProjections[school.name] || {})[level];
+  if (pe) {
+    if (pe.closes) return { closed: true };
+    const last = pe.points[pe.points.length - 1];
+    return { pct: Math.round((last.pctLo + last.pctHi) / 2) };
+  }
+  // Relocating schools (Community Montessori, High Peaks): their status-quo
+  // projection is for the building they would leave — post-move utilization
+  // is unpublished, so treat as no data rather than mislead.
+  const p = proposals[school.name];
+  if (p && p.action === 'relocate') return null;
+  const c = school.capacityByLevel && school.capacityByLevel[level];
+  return c ? { pct: c.projPctCapacity } : null;
+}
 let activeFilter = 'all';
 let showOther = false; // "Other" toggled off by default
 const markerEntries = [];
@@ -1093,6 +1136,14 @@ function getMarkerColor(school, level) {
   }
   if (colorMode === 'capacity') {
     const capInfo = school.capacityByLevel && school.capacityByLevel[level];
+    if (capacityView === 'proposal') {
+      const r = proposalPct2030(school, level);
+      if (!r) return GRAY;
+      return r.closed ? '#555' : capacityColor(r.pct);
+    }
+    if (capacityView === 'proj') {
+      return capacityColor(capInfo ? capInfo.projPctCapacity : null);
+    }
     return capacityColor(capInfo && capInfo.pctCapacity != null ? capInfo.pctCapacity : null);
   }
   if (colorMode === 'projchange') {
@@ -1272,6 +1323,15 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
 document.getElementById('viewProposal').addEventListener('click', e => {
   e.preventDefault();
   document.querySelector('.mode-btn[data-mode="proposal"]').click();
+});
+
+// Capacity-mode sub-view: Today / 2030 status quo / 2030 with proposal
+document.querySelectorAll('#capacityView .sub-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    capacityView = btn.dataset.view;
+    document.querySelectorAll('#capacityView .sub-btn').forEach(b => b.classList.toggle('active', b === btn));
+    applyFilter();
+  });
 });
 
 // ─── BOUNDARY OVERLAYS ───
@@ -1588,7 +1648,28 @@ function renderOverview() {
   html += `<div class="ov-row"><span>Projected to shrink 10%+</span><span><b>${shrinking10}</b></span></div>`;
   html += `<div class="ov-row"><span>Elementary in advisory / engagement phase</span><span><b>${d.metrics.now.advisory} / ${d.metrics.now.engagement}</b> → <b>${d.metrics.proj.advisory} / ${d.metrics.proj.engagement}</b></span></div>`;
 
-  html += `<div class="ov-note">District totals: BVSD Annual Enrollment Trend Report, Feb 2026 (all schools incl. charters, excl. preschool). Utilization: BVSD capacity tables (elementary Feb 2026, middle Oct 2025). Per-school counts cover elementary, middle and K-8 programs with published capacity; high schools have no published capacity.</div>`;
+  // What the Aug 25 proposal would NOT change: schools still under 60% of
+  // capacity in ~2030 even if every proposed change is adopted. Mountain
+  // schools are excluded, matching BVSD's own exemption from LRAC criteria.
+  const MOUNTAIN_EXEMPT = new Set(['Gold Hill Elementary', 'Jamestown Elementary', 'Nederland Elementary', 'Nederland Middle-Senior']);
+  const still = [];
+  schools.forEach(s => {
+    if (MOUNTAIN_EXEMPT.has(s.name)) return;
+    Object.keys(s.capacityByLevel || {}).forEach(lvl => {
+      const r = proposalPct2030(s, lvl);
+      if (r && !r.closed && r.pct < 60) still.push({ name: s.name, lvl, pct: r.pct });
+    });
+  });
+  still.sort((a, b) => a.pct - b.pct);
+  const shortName = n => n.replace(/ (International )?Elementary$/, '').replace(/ Middle School$/, '').replace(' Charter', '');
+  html += `<div class="ov-sub">After the proposal (~2030)</div>`;
+  html += `<div class="ov-row"><span>Still below 60% of capacity</span><span><b>${still.length}</b> schools</span></div>`;
+  html += `<div style="font-size:11px;color:#666;line-height:1.5;margin-top:2px">`;
+  html += still.map(x => `${shortName(x.name)}${x.lvl === 'middle' ? ' (6-8)' : ''} <span style="color:${capacityColor(x.pct)};font-weight:600">${x.pct}%</span>`).join(' · ');
+  html += `</div>`;
+  html += `<div class="ov-row"><span>Boulder elementary seats empty (BVSD)</span><span><b>36.9%</b> → <b>32.1%</b> with proposal</span></div>`;
+
+  html += `<div class="ov-note">District totals: BVSD Annual Enrollment Trend Report, Feb 2026 (all schools incl. charters, excl. preschool). Utilization: BVSD capacity tables (elementary Feb 2026, middle Oct 2025). Per-school counts cover elementary, middle and K-8 programs with published capacity; high schools have no published capacity. "After the proposal" combines BVSD's Aug 25 post-change projections (range midpoints) with its status-quo projections for unaffected schools; mountain schools are exempt from BVSD's enrollment criteria and excluded. Dual-language schools (Columbine, Pioneer, University Hill) were deferred to a separate BVSD review beginning fall 2026.</div>`;
   document.getElementById('overviewBody').innerHTML = html;
 }
 renderOverview();
