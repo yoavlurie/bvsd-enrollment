@@ -567,40 +567,49 @@ function capacitySparkline(school, level, width, height) {
   const projPcts = (capInfo.projected || []).map(p => ({ year: p.year, pct: p.enrollment / cap * 100 }));
   const allPcts = [...histPcts, ...projPcts];
 
-  const mx = Math.max(120, ...allPcts.map(p => p.pct));
-  const step = width / (allPcts.length - 1);
-  const refY = (height - (100 / mx) * height).toFixed(1);
+  // "With proposal" series — utilization midpoints straight from BVSD's Aug 25 deck
+  const propEntry = (proposalProjections[school.name] || {})[level];
+  const propPcts = propEntry ? propEntry.points.map(pt => ({ year: pt.y, pct: (pt.pctLo + pt.pctHi) / 2 })) : [];
+
+  const mx = Math.max(120, ...allPcts.map(p => p.pct), ...propPcts.map(p => p.pct));
+  const firstYear = histPcts[0].year;
+  const lastYear = Math.max(allPcts[allPcts.length - 1].year, ...propPcts.map(p => p.year));
+  // X position is by year (all series share one axis), not by point index
+  const X = y => (((y - firstYear) / (lastYear - firstYear)) * width).toFixed(1);
+  const Y = pct => (height - (pct / mx) * height).toFixed(1);
+  const coords = arr => arr.map(p => `${X(p.year)},${Y(p.pct)}`).join(' ');
+  const refY = Y(100);
 
   let svg = `<svg width="${width}" height="${height + 12}" style="display:block">`;
   svg += `<line x1="0" y1="${refY}" x2="${width}" y2="${refY}" stroke="#ddd" stroke-width="1" stroke-dasharray="3,3"/>`;
   svg += `<text x="${width}" y="${parseFloat(refY) - 2}" fill="#bbb" font-size="7" text-anchor="end">100% cap</text>`;
 
   // Historical line (solid)
-  const histCoords = histPcts.map((p, i) =>
-    `${(i * step).toFixed(1)},${(height - (p.pct / mx) * height).toFixed(1)}`);
-  if (histCoords.length > 1) {
-    svg += `<polyline points="${histCoords.join(' ')}" fill="none" stroke="#666" stroke-width="1.5" stroke-linejoin="round"/>`;
+  if (histPcts.length > 1) {
+    svg += `<polyline points="${coords(histPcts)}" fill="none" stroke="#666" stroke-width="1.5" stroke-linejoin="round"/>`;
   }
 
-  // Projected line (dashed, connects from last historical point)
+  // Status-quo projection (dashed, connects from last historical point)
   if (projPcts.length > 0) {
-    const startIdx = histPcts.length - 1;
-    const projCoords = [];
-    for (let i = startIdx; i < allPcts.length; i++) {
-      projCoords.push(`${(i * step).toFixed(1)},${(height - (allPcts[i].pct / mx) * height).toFixed(1)}`);
-    }
-    svg += `<polyline points="${projCoords.join(' ')}" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="4,3"/>`;
+    svg += `<polyline points="${coords([histPcts[histPcts.length - 1], ...projPcts])}" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-linejoin="round" stroke-dasharray="4,3"/>`;
   }
 
-  // End dot
-  const lastIdx = allPcts.length - 1;
-  const lastX = (lastIdx * step).toFixed(1);
-  const lastY = (height - (allPcts[lastIdx].pct / mx) * height).toFixed(1);
-  svg += `<circle cx="${lastX}" cy="${lastY}" r="3" fill="${capacityColor(allPcts[lastIdx].pct)}"/>`;
+  // Status-quo end dot
+  const lastBase = allPcts[allPcts.length - 1];
+  svg += `<circle cx="${X(lastBase.year)}" cy="${Y(lastBase.pct)}" r="3" fill="${capacityColor(lastBase.pct)}"/>`;
+
+  // Proposal branch: from the last pre-change projection (2026-27), jump to the
+  // post-change level — up for receiving schools, to zero for closing ones.
+  if (propPcts.length > 0) {
+    const anchor = projPcts.find(p => p.year === 2026) || histPcts[histPcts.length - 1];
+    svg += `<polyline points="${coords([anchor, ...propPcts])}" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-linejoin="round" stroke-dasharray="2,3"/>`;
+    const lastProp = propPcts[propPcts.length - 1];
+    svg += `<circle cx="${X(lastProp.year)}" cy="${Y(lastProp.pct)}" r="3" fill="#f59e0b"/>`;
+  }
 
   // Year labels
-  svg += `<text x="0" y="${height + 10}" fill="#bbb" font-size="7">'${String(allPcts[0].year).slice(2)}</text>`;
-  svg += `<text x="${width}" y="${height + 10}" fill="#bbb" font-size="7" text-anchor="end">'${String(allPcts[lastIdx].year).slice(2)}</text>`;
+  svg += `<text x="0" y="${height + 10}" fill="#bbb" font-size="7">'${String(firstYear).slice(2)}</text>`;
+  svg += `<text x="${width}" y="${height + 10}" fill="#bbb" font-size="7" text-anchor="end">'${String(lastYear).slice(2)}</text>`;
 
   svg += `</svg>`;
   return svg;
@@ -646,10 +655,11 @@ function buildPopup(school, level) {
       html += `<div class="popup-stat-row"><span class="popup-stat-label">% of capacity</span><span class="popup-stat-value" style="color:${capColor}">${capPct}%</span></div>`;
       html += `<div class="popup-bar-container"><div class="popup-bar" style="width:${Math.min(capPct, 100)}%;background:${capColor}"></div></div>`;
     }
+    const propEntry = (proposalProjections[school.name] || {})[level];
     const capSpark = capacitySparkline(school, level, 190, 40);
     if (capSpark) {
       html += `<div class="popup-sparkline">`;
-      html += `<div class="popup-sparkline-label">% of capacity over time <span style="color:#2563eb">— projected</span></div>`;
+      html += `<div class="popup-sparkline-label">% of capacity over time <span style="color:#2563eb">— projected</span>${propEntry ? ' <span style="color:#f59e0b">— with proposal</span>' : ''}</div>`;
       html += capSpark;
       html += `</div>`;
     }
@@ -662,6 +672,16 @@ function buildPopup(school, level) {
     if (capInfo.projChange !== null) {
       const pc = capInfo.projChange;
       html += `<div class="popup-stat-row" style="margin-top:4px"><span class="popup-stat-label">Projected change by ${capInfo.projYear}</span><span class="popup-stat-value" style="color:${projChangeColor(pc)}">${pc > 0 ? '+' : ''}${pc}%</span></div>`;
+    }
+    if (propEntry) {
+      if (propEntry.closes) {
+        html += `<div class="popup-stat-row"><span class="popup-stat-label">With proposal</span><span class="popup-stat-value" style="color:#b45309">${propEntry.closes}</span></div>`;
+      } else {
+        propEntry.points.forEach(pt => {
+          html += `<div class="popup-stat-row"><span class="popup-stat-label">With proposal (${pt.y}-${String(pt.y + 1).slice(2)})</span><span class="popup-stat-value" style="color:#b45309">${pt.lo}–${pt.hi} · ${pt.pctLo}–${pt.pctHi}%</span></div>`;
+        });
+        if (propEntry.capacityNote) html += `<div style="font-size:10px;color:#999;margin-top:2px">${propEntry.capacityNote}</div>`;
+      }
     }
     if (capInfo.source) html += `<div style="margin-top:5px;font-size:10px;color:#aaa">${capInfo.source}</div>`;
     html += `</div>`;
@@ -999,6 +1019,37 @@ const proposalFlows = [
   { from: 'High Peaks Elementary', to: 'Douglass Elementary',    kind: 'move' },
   { from: 'Community Montessori',  to: 'BCSIS',                  kind: 'move' },
 ];
+
+// Post-change enrollment & utilization by school and level, from the Aug 25
+// proposal deck (pp. 25, 37, 39, 48, 51, 54). Enrollment is a range because it
+// depends on how many students from the sending school follow the reassignment;
+// pctLo/pctHi are BVSD's own utilization figures (Monarch's are against its
+// combined ~890-seat 6-8 capacity, pending final design). closes marks the
+// level that would end at that school.
+const proposalProjections = {
+  'Kohl Elementary':        { elementary: { points: [{ y: 2027, lo: 433, hi: 473, pctLo: 80, pctHi: 87 }, { y: 2030, lo: 437, hi: 474, pctLo: 81, pctHi: 88 }] } },
+  'Bear Creek Elementary':  { elementary: { points: [{ y: 2027, lo: 392, hi: 445, pctLo: 80, pctHi: 90 }, { y: 2030, lo: 403, hi: 462, pctLo: 82, pctHi: 94 }] } },
+  'Foothill Elementary':    { elementary: { points: [{ y: 2027, lo: 488, hi: 497, pctLo: 86, pctHi: 88 }, { y: 2030, lo: 484, hi: 492, pctLo: 86, pctHi: 87 }] } },
+  'Whittier International Elementary': { elementary: { points: [{ y: 2027, lo: 337, hi: 357, pctLo: 76, pctHi: 81 }, { y: 2030, lo: 315, hi: 329, pctLo: 71, pctHi: 74 }] } },
+  'Coal Creek Elementary':  { elementary: { points: [{ y: 2027, lo: 396, hi: 426, pctLo: 80, pctHi: 87 }, { y: 2030, lo: 395, hi: 427, pctLo: 80, pctHi: 87 }] } },
+  'Eisenhower Elementary':  { elementary: { points: [{ y: 2027, lo: 289, hi: 294, pctLo: 59, pctHi: 60 }, { y: 2030, lo: 297, hi: 302, pctLo: 60, pctHi: 61 }] } },
+  'Heatherwood Elementary': { elementary: { points: [{ y: 2027, lo: 260, hi: 267, pctLo: 53, pctHi: 54 }, { y: 2030, lo: 260, hi: 268, pctLo: 53, pctHi: 54 }] } },
+  'Fireside Elementary':    { elementary: { points: [{ y: 2027, lo: 427, hi: 436, pctLo: 83, pctHi: 84 }, { y: 2030, lo: 421, hi: 430, pctLo: 82, pctHi: 83 }] } },
+  'Superior Elementary':    { elementary: { points: [{ y: 2027, lo: 447, hi: 458, pctLo: 96, pctHi: 98 }, { y: 2030, lo: 424, hi: 436, pctLo: 91, pctHi: 94 }] } },
+  'Eldorado PK-8': {
+    elementary: { points: [{ y: 2027, lo: 343, hi: 365, pctLo: 60, pctHi: 64 }, { y: 2030, lo: 353, hi: 377, pctLo: 62, pctHi: 66 }] },
+    middle:     { closes: '6-8 would end 2027-28', points: [{ y: 2027, lo: 0, hi: 0, pctLo: 0, pctHi: 0 }] },
+  },
+  'Monarch PK-8': {
+    elementary: { closes: 'K-5 would end 2027-28', points: [{ y: 2027, lo: 0, hi: 0, pctLo: 0, pctHi: 0 }] },
+    middle:     { capacityNote: 'Utilization is against the combined 6-8 capacity of ~890 seats, pending final design.',
+                  points: [{ y: 2027, lo: 565, hi: 600, pctLo: 63, pctHi: 67 }, { y: 2030, lo: 489, hi: 517, pctLo: 55, pctHi: 58 }] },
+  },
+  'Flatirons Elementary':   { elementary: { closes: 'Would close 2027-28', points: [{ y: 2027, lo: 0, hi: 0, pctLo: 0, pctHi: 0 }] } },
+  'Mesa Elementary':        { elementary: { closes: 'Would close 2027-28', points: [{ y: 2027, lo: 0, hi: 0, pctLo: 0, pctHi: 0 }] } },
+  'Birch Elementary':       { elementary: { closes: 'Would close 2027-28', points: [{ y: 2027, lo: 0, hi: 0, pctLo: 0, pctHi: 0 }] } },
+  'Douglass Elementary':    { elementary: { closes: 'Would close 2027-28', points: [{ y: 2027, lo: 0, hi: 0, pctLo: 0, pctHi: 0 }] } },
+};
 
 // ─── COLOR MODE + FILTER STATE ───
 let colorMode = 'enrollment'; // 'enrollment' or 'closure'
